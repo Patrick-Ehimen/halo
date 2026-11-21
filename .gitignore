@@ -32,5 +32,3 @@ dist-ssr
 # Rust
 /target/
 
-# Design canvas snapshot (local only; live canvas is the source of truth)
-/design/

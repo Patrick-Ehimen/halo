@@ -4,6 +4,8 @@ A macOS-first focus app: a Pomodoro-style timer, daily planner, distraction
 blocker, and a trading-discipline desk. One goal: more deep work, less drift.
 Rust core, TypeScript/React UI, Tauri in between.
 
+![Halo focus screen: a 50-minute deep session with intention, up-next tasks, Shield status and ambience](docs/screenshots/main.jpg)
+
 > **Status: early scaffold.** The workspace, build tooling, typed IPC, and local
 > database are in place; the features are not. The app opens one window that
 > shows its version and database schema version. Nothing else works yet.
@@ -25,6 +27,31 @@ Rust core, TypeScript/React UI, Tauri in between.
 
 Halo never places trades, never holds exchange API keys, and never gives
 trading advice. It only manages time, attention, and your own rules.
+
+## Screens
+
+These are designs, rendered from the canvas snapshot in [design/](design/).
+The app doesn't have these screens yet.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/plan.jpg" alt="Today plan with quick add, tasks and a time-block timeline"><br><b>Today plan.</b> Quick add, tasks with session estimates, time blocks.</td>
+    <td width="50%"><img src="docs/screenshots/stats.jpg" alt="Stats with focus score, heatmap, peak hours and time per project"><br><b>Stats.</b> Focus score, heatmap, peak hours, weekly review.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/trading.jpg" alt="Trading desk with session clocks, pre-trade checklist, head check and chart time"><br><b>Trading desk.</b> Session clocks, checklist, head check, chart time outside your window.</td>
+    <td><img src="docs/screenshots/blocker.jpg" alt="Shield settings with strict mode, block and allow lists, apps and schedules"><br><b>Shield.</b> Strict mode, block or allow lists, apps, schedules.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/menubar.jpg" alt="Menu bar popover, item states, right-click menu and settings"><br><b>Menu bar.</b> Popover, item states, right-click menu, settings.</td>
+    <td><img src="docs/screenshots/overlays.jpg" alt="Mini timer, check-in, reflection, command palette and break overlay"><br><b>Overlays.</b> Mini timer, check-in, reflection, ⌘K palette, break overlay.</td>
+  </tr>
+</table>
+
+<img src="docs/screenshots/brand.jpg" alt="Halo logo, app icon, colors and type">
+
+To regenerate the images after the canvas changes, update `design/` and run
+`sh scripts/screenshots/render.sh` (needs Google Chrome).
 
 ## How it's built
 

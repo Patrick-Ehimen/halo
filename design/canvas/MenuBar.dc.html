@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halo — Menu bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0B0C10}
+a{color:#F2B544}a:hover{color:#FFD488}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 940px; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; color: #F2F2F5; background: radial-gradient(1000px 700px at 14% 18%, rgba(242,181,68,0.18), rgba(242,181,68,0) 60%), radial-gradient(900px 700px at 92% 88%, rgba(91,214,154,0.16), rgba(91,214,154,0) 60%), #0B0C10">
+
+<div style="position: absolute; left: 0; top: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 20px; padding: 0 18px; background: rgba(20,21,28,0.55); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px">
+<span style="font-weight: 600">Halo</span><span style="color: #C9CBD5">File</span><span style="color: #C9CBD5">Edit</span><span style="color: #C9CBD5">Session</span><span style="color: #C9CBD5">Window</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.18); font-variant-numeric: tabular-nums">
+<sc-if value="{{trayFocus}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="9"></circle><circle cx="32" cy="32" r="22" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-dasharray="138.2" stroke-dashoffset="{{trayOffset}}" transform="rotate(-90 32 32)"></circle></svg></sc-if>
+<sc-if value="{{trayTrade}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 3v4M7 15v6M17 3v2M17 13v8"></path><rect x="5" y="7" width="4" height="8" rx="1"></rect><rect x="15" y="5" width="4" height="8" rx="1"></rect></svg></sc-if>
+<sc-if value="{{trayIcon}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="118 20.23" transform="rotate(-50 32 32)"></circle><circle cx="37.1" cy="10.6" r="4.5" fill="#FFFFFF"></circle></svg></sc-if>
+{{trayText}}</span>
+<span style="color: #C9CBD5">Wi-Fi</span>
+<span style="color: #C9CBD5; font-variant-numeric: tabular-nums">Tue 24 Nov {{nowShort}}</span>
+</div>
+
+<div style="position: absolute; left: 64px; top: 64px; width: 520px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8A8E9E">Menu bar item states</p>
+<div style="padding: 8px 16px; border-radius: 16px; background: rgba(20,21,28,0.72); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.09)">
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.10); font-size: 13px"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="118 20.23" transform="rotate(-50 32 32)"></circle><circle cx="37.1" cy="10.6" r="4.5" fill="#FFFFFF"></circle></svg></span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Idle</span><span style="font-size: 12px; color: #8A8E9E">Icon only. Click to start a session.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.10); font-size: 13px; font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="9"></circle><circle cx="32" cy="32" r="22" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-dasharray="138.2" stroke-dashoffset="51" transform="rotate(-90 32 32)"></circle></svg>18:24</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Focus running</span><span style="font-size: 12px; color: #8A8E9E">The ring fills as the session goes.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(108,182,255,0.22); color: #CFE6FF; font-size: 13px; font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#CFE6FF" stroke-width="9"></circle></svg>+03:12</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Overflow</span><span style="font-size: 12px; color: #8A8E9E">Past the goal, still counting.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.10); font-size: 13px; font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 10h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"></path><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M9 3v3M13 3v3"></path></svg>07:02</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Break</span><span style="font-size: 12px; color: #8A8E9E">Counts down the rest.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.10); font-size: 13px; font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9A8D" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>18:24</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Strict session</span><span style="font-size: 12px; color: #8A8E9E">Lock shows the session can't be ended.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.10); font-size: 13px; font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M7 3v4M7 15v6M17 3v2M17 13v8"></path><rect x="5" y="7" width="4" height="8" rx="1"></rect><rect x="15" y="5" width="4" height="8" rx="1"></rect></svg>NY 5:02</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Trading countdown</span><span style="font-size: 12px; color: #8A8E9E">When no session runs: time to your window.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(91,214,154,0.22); color: #C6F2DA; font-size: 13px; font-variant-numeric: tabular-nums"><span style="width: 7px; height: 7px; border-radius: 50%; background: #5BD69A"></span>NY · 2:41 left</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Window open</span><span style="font-size: 12px; color: #8A8E9E">Green while exchanges are unlocked.</span></span></div>
+<div style="display: flex; align-items: center; gap: 14px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06)"><span style="width: 150px; display: flex"><span style="display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,122,107,0.20); color: #FFD1CB; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFD1CB" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M6 18L18 6"></path></svg>Sitting out</span></span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Head check said rest</span><span style="font-size: 12px; color: #8A8E9E">Exchanges stay locked for the day.</span></span></div>
+</div>
+</div>
+
+<div style="position: absolute; left: 64px; top: 560px; width: 270px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8A8E9E">Right-click menu</p>
+<div role="menu" aria-label="Halo quick actions" style="padding: 5px; border-radius: 10px; background: rgba(40,41,50,0.92); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 18px 40px rgba(0,0,0,0.5); font-size: 13px">
+<sc-for list="{{menu}}" as="mi" hint-placeholder-count="10">
+<sc-if value="{{mi.sep}}" hint-placeholder-val="{{ false }}"><div style="height: 1px; margin: 4px 8px; background: rgba(255,255,255,0.10)"></div></sc-if>
+<sc-if value="{{mi.item}}" hint-placeholder-val="{{ true }}"><button type="button" role="menuitem" style="{{mi.style}}"><span style="flex: 1">{{mi.label}}</span><span style="font-size: 12px; color: #8A8E9E">{{mi.key}}</span></button></sc-if>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; left: 364px; top: 560px; width: 560px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8A8E9E">Menu bar settings</p>
+<div style="padding: 16px 18px; border-radius: 16px; background: rgba(20,21,28,0.72); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.09); display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 500">Show in the menu bar</span>
+<div role="group" aria-label="Menu bar shows" style="display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); width: fit-content">
+<sc-for list="{{trayModes}}" as="tm" hint-placeholder-count="3"><button type="button" aria-pressed="{{tm.pressed}}" onClick="{{tm.pick}}" style="{{tm.style}}">{{tm.label}}</button></sc-for>
+</div>
+</div>
+<sc-for list="{{settings}}" as="sg" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06)"><span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 500">{{sg.label}}</span><span style="font-size: 11px; color: #8A8E9E">{{sg.sub}}</span></span><button type="button" role="switch" aria-checked="{{sg.checked}}" aria-label="{{sg.label}}" onClick="{{sg.toggle}}" style="{{sg.track}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.3)"></span></button></div>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; left: 990px; top: 36px; width: 400px; padding: 14px; box-sizing: border-box; border-radius: 18px; background: rgba(28,29,38,0.90); backdrop-filter: blur(40px) saturate(150%); -webkit-backdrop-filter: blur(40px) saturate(150%); border: 1px solid rgba(255,255,255,0.13); box-shadow: 0 28px 70px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 8px">
+<div role="tablist" aria-label="Popover view" style="flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07)">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{tb.selected}}" onClick="{{tb.pick}}" style="{{tb.style}}">{{tb.label}}</button></sc-for>
+</div>
+<button type="button" aria-label="Settings" style="width: 34px; height: 34px; border-radius: 9px; border: 0; background: rgba(255,255,255,0.05); color: #A9ACBA; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg></button>
+</div>
+
+<sc-if value="{{showFocus}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7"></circle><circle cx="42" cy="42" r="36" fill="none" stroke="#F2B544" stroke-width="7" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="{{focusOffset}}" transform="rotate(-90 42 42)"></circle></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span role="timer" style="font-size: 36px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums">{{focusTime}}</span>
+<span style="font-size: 13px; color: #C9CBD5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Write matching-engine tests</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8A8E9E"><span style="width: 6px; height: 6px; border-radius: 50%; background: #F2B544"></span>meridian-rs · session 2 of 4</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{toggleFocus}}" style="flex: 1.3; height: 40px; border-radius: 11px; border: 0; background: #F2B544; color: #2A1D05; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{focusPlay}}</button>
+<button type="button" onClick="{{addFive}}" style="flex: 1; height: 40px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer">+5 min</button>
+<button type="button" style="flex: 1; height: 40px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer">End</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; color: #8A8E9E">Quick start</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<button type="button" style="height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #E6E7EC; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer">Pomodoro 25</button>
+<button type="button" style="height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #E6E7EC; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer">Deep 50</button>
+<button type="button" style="height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #E6E7EC; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer">Flowtime</button>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.04)">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: #A9ACBA">Today</span><span style="font-variant-numeric: tabular-nums">3h 20m of 5h</span></div>
+<div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08)"><div style="width: 67%; height: 100%; border-radius: 999px; background: #F2B544"></div></div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px"><span style="color: #A9ACBA">Up next</span><span>Review hyperliquid-wasm PR</span></div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5BD69A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path></svg>
+<span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 13px; font-weight: 500">Shield</span><span style="font-size: 11px; color: #8A8E9E">{{shieldSub}}</span></span>
+<button type="button" role="switch" aria-checked="{{shieldChecked}}" aria-label="Shield" onClick="{{toggleShield}}" style="{{shieldTrack}}"><span style="width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.3)"></span></button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showTrading}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 14px; border-radius: 14px; background: rgba(91,214,154,0.07); border: 1px solid rgba(91,214,154,0.26); display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 12px; color: #C6F2DA">{{nyLabel}}</span><span style="font-size: 11px; color: #A9ACBA; font-variant-numeric: tabular-nums">Lagos {{nowWat}}</span></div>
+<span role="timer" style="font-size: 34px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums">{{nyTime}}</span>
+<div aria-hidden="true" style="position: relative; display: flex; flex-direction: column; gap: 3px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4"><div style="position: relative; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.06)"><sc-for list="{{r.segs}}" as="g" hint-placeholder-count="1"><span style="{{g.style}}"></span></sc-for></div></sc-for>
+<span style="{{needleStyle}}"></span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px; padding: 6px 2px; font-size: 13px"><span style="{{s.dot}}"></span><span style="flex: 1">{{s.name}}</span><span style="width: 48px; color: #A9ACBA; font-variant-numeric: tabular-nums">{{s.local}}</span><span style="width: 120px; text-align: right; font-size: 12px; color: #C9CBD5; font-variant-numeric: tabular-nums">{{s.short}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.04)">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="font-weight: 500">Pre-trade checklist</span><span style="color: #A9ACBA">{{checkCount}}</span></div>
+<div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08)"><div style="{{checkBar}}"></div></div>
+<sc-if value="{{hasNext}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{tickNext}}" style="display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 4px 6px; border-radius: 8px; border: 0; background: transparent; color: #F2F2F5; font-family: inherit; font-size: 12px; text-align: left; cursor: pointer"><span style="flex: 0 0 16px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 5px; border: 1.5px solid rgba(255,255,255,0.3)"></span><span style="flex: 1">Next: {{nextItem}}</span><span style="color: #8A8E9E">Tick</span></button></sc-if>
+<sc-if value="{{noNext}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #C6F2DA">All six done</span></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="font-weight: 500">Head check</span><span style="{{scoreNoteStyle}}">{{scoreNote}}</span></div>
+<div role="group" aria-label="Rate your state from 1 to 5" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px">
+<sc-for list="{{scores}}" as="m" hint-placeholder-count="5"><button type="button" aria-pressed="{{m.pressed}}" aria-label="{{m.word}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.n}}</button></sc-for>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,122,107,0.07); border: 1px solid rgba(255,122,107,0.22)">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #FFD1CB">Charts outside your window today</span><span style="font-size: 11px; color: #A9ACBA">Nudge after 5 min is on</span></span>
+<span style="font-size: 18px; font-weight: 600; color: #FF9A8D; font-variant-numeric: tabular-nums">23m</span>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; gap: 6px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08)">
+<a href="Main.dc.html" style="flex: 1; height: 32px; border-radius: 9px; background: rgba(255,255,255,0.06); color: #F2F2F5; font-size: 12px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Open Halo</a>
+<a href="Trading.dc.html" style="flex: 1; height: 32px; border-radius: 9px; background: rgba(255,255,255,0.06); color: #F2F2F5; font-size: 12px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Trading desk</a>
+<button type="button" style="height: 32px; padding: 0 12px; border-radius: 9px; border: 0; background: transparent; color: #A9ACBA; font-family: inherit; font-size: 12px; cursor: pointer">Quit</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"liveClock":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":940}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { demo: 9 * 3600 + 28 * 60 + 12, tab: 'trading', left: 1104, running: true, checks: [true, true, true, false, false, false], score: 0, tray: 'focus', seconds: false, autoTrade: true, mono: true, shield: true };
+  }
+  componentDidMount() {
+    this.t = setInterval(() => this.setState({ demo: (this.state.demo + 1) % 86400, left: this.state.running ? this.state.left - 1 : this.state.left }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+  sw(on, color) {
+    return 'flex: 0 0 auto; width: 46px; height: 28px; padding: 3px; box-sizing: border-box; border-radius: 999px; border: 0; cursor: pointer; display: flex; ' + (on ? 'background: ' + color + '; justify-content: flex-end;' : 'background: rgba(255,255,255,0.14); justify-content: flex-start;');
+  }
+  renderVals() {
+    const st = this.state;
+    const pad = (n) => String(n).padStart(2, '0');
+    const live = this.props.liveClock ?? false;
+    const d = new Date();
+    const t = live ? d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds() : st.demo;
+    const day = live ? d.getUTCDay() : 2;
+    const weekend = day === 6 || (day === 0 && t < 22 * 3600) || (day === 5 && t >= 21 * 3600);
+    const clock = (s) => { const x = ((s % 86400) + 86400) % 86400; return pad(Math.floor(x / 3600)) + ':' + pad(Math.floor((x % 3600) / 60)); };
+    const hms = (s) => Math.floor(s / 3600) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+    const short = (s) => { const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); return h ? h + 'h ' + pad(m) + 'm' : m + 'm'; };
+    const wat = (t + 3600) % 86400;
+    const defs = [
+      { name: 'Sydney', o: 22, c: 7, off: 11 },
+      { name: 'Tokyo', o: 0, c: 9, off: 9 },
+      { name: 'London', o: 8, c: 16.5, off: 0 },
+      { name: 'New York', o: 14.5, c: 21, off: -5, mine: true }
+    ];
+    const info = defs.map((s) => {
+      const o = s.o * 3600, c = s.c * 3600;
+      const open = !weekend && (o < c ? t >= o && t < c : t >= o || t < c);
+      const delta = open ? (c - t + 86400) % 86400 : (o - t + 86400) % 86400;
+      return { ...s, open, delta };
+    });
+    const sessions = info.map((s) => ({
+      name: s.name + (s.mine ? ' · yours' : ''),
+      local: clock(t + s.off * 3600),
+      short: weekend ? 'Weekend' : s.open ? 'Open · ' + short(s.delta) + ' left' : 'Opens in ' + short(s.delta),
+      dot: 'width: 8px; height: 8px; border-radius: 50%; background: ' + (s.open ? '#5BD69A' : 'rgba(255,255,255,0.22)')
+    }));
+    const ny = info[3];
+    const segStyle = (a, b, mine) => 'position: absolute; top: 0; bottom: 0; border-radius: 3px; left: ' + (a / 24 * 100).toFixed(2) + '%; width: ' + ((b - a) / 24 * 100).toFixed(2) + '%; background: ' + (mine ? '#5BD69A' : 'rgba(108,182,255,0.55)');
+    const rows = defs.map((s) => {
+      const a = (s.o + 1) % 24, b = (s.c + 1) % 24;
+      return { segs: a < b ? [{ style: segStyle(a, b, s.mine) }] : [{ style: segStyle(a, 24, s.mine) }, { style: segStyle(0, b, s.mine) }] };
+    });
+    const needleStyle = 'position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: #F2B544; left: ' + (wat / 86400 * 100).toFixed(2) + '%';
+
+    const items = ['Higher-timeframe bias written', 'Key levels marked', 'News checked for today', 'Risk per trade set', 'Max trades for today set', 'Not chasing a loss'];
+    const done = st.checks.filter(Boolean).length;
+    const nextIdx = st.checks.indexOf(false);
+    const words = ['Tilted', 'Off', 'Okay', 'Clear', 'Sharp'];
+    const scores = [1, 2, 3, 4, 5].map((n) => {
+      const on = st.score === n;
+      const tone = n <= 2 ? ['rgba(255,122,107,0.18)', '#FF7A6B', '#FFD1CB'] : n === 3 ? ['rgba(242,181,68,0.18)', '#F2B544', '#FFE2A6'] : ['rgba(91,214,154,0.16)', '#5BD69A', '#C6F2DA'];
+      return {
+        n, word: n + ' ' + words[n - 1],
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ score: n }),
+        style: 'height: 36px; border-radius: 9px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; ' + (on ? 'background: ' + tone[0] + '; border: 1px solid ' + tone[1] + '; color: ' + tone[2] + ';' : 'background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: #A9ACBA;')
+      };
+    });
+    const sc = st.score;
+    const scoreNote = sc === 0 ? 'Not checked yet' : sc < 3 ? words[sc - 1] + ' · sit this one out' : sc === 3 ? 'Okay · half size' : words[sc - 1] + ' · clear to trade';
+    const scoreNoteStyle = 'color: ' + (sc === 0 ? '#8A8E9E' : sc < 3 ? '#FF9A8D' : sc === 3 ? '#FFD488' : '#5BD69A');
+
+    const focusTotal = 3000;
+    const fl = st.left;
+    const focusTime = (fl < 0 ? '+' : '') + pad(Math.floor(Math.abs(fl) / 60)) + ':' + pad(Math.abs(fl) % 60);
+    const prog = fl > 0 ? 1 - fl / focusTotal : 1;
+
+    const segBase = 'height: 30px; padding: 0 12px; border-radius: 8px; border: 0; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; ';
+    const tabs = [{ id: 'focus', label: 'Focus' }, { id: 'trading', label: 'Trading' }].map((x) => {
+      const on = st.tab === x.id;
+      return { label: x.label, selected: on ? 'true' : 'false', pick: () => this.setState({ tab: x.id }), style: segBase + (on ? 'background: rgba(255,255,255,0.12); color: #F2F2F5;' : 'background: transparent; color: #A9ACBA;') };
+    });
+    const trayModes = [{ id: 'focus', label: 'Focus timer' }, { id: 'trade', label: 'Trading countdown' }, { id: 'icon', label: 'Icon only' }].map((x) => {
+      const on = st.tray === x.id;
+      return { label: x.label, pressed: on ? 'true' : 'false', pick: () => this.setState({ tray: x.id }), style: segBase + (on ? 'background: rgba(255,255,255,0.12); color: #F2F2F5;' : 'background: transparent; color: #A9ACBA;') };
+    });
+    const setting = (key, label, sub) => ({ label, sub, checked: st[key] ? 'true' : 'false', toggle: () => this.setState({ [key]: !this.state[key] }), track: this.sw(st[key], '#5BD69A') });
+    const settings = [
+      setting('seconds', 'Show seconds', 'Off keeps the menu bar calmer'),
+      setting('autoTrade', 'Switch to trading countdown when idle', 'Shows time to your window when no session runs'),
+      setting('mono', 'Monochrome icon', 'Matches other menu bar icons')
+    ];
+    const menuBase = 'width: 100%; display: flex; align-items: center; gap: 10px; height: 28px; padding: 0 10px; border-radius: 6px; border: 0; background: transparent; color: #F2F2F5; font-family: inherit; font-size: 13px; text-align: left; cursor: pointer;';
+    const mk = (label, key, hi) => ({ item: true, sep: false, label, key, style: menuBase + (hi ? ' background: rgba(108,182,255,0.45);' : '') });
+    const sep = { item: false, sep: true, label: '', key: '', style: '' };
+    const menu = [mk('Start Pomodoro 25', '⌘1', false), mk('Start Deep 50', '⌘2', true), mk('Start Flowtime', '⌘3', false), sep, mk('Turn Shield on or off', '⌘⇧S', false), mk('Head check…', '⌘⇧H', false), mk('Open Trading desk', '⌘T', false), sep, mk('Settings…', '⌘,', false), mk('Quit Halo', '⌘Q', false)];
+
+    const trayMode = st.tray === 'focus' && !st.running && st.autoTrade ? 'trade' : st.tray;
+    const fmtTray = (s) => st.seconds ? hms(s) : Math.floor(s / 3600) + ':' + pad(Math.floor((s % 3600) / 60));
+    const trayText = trayMode === 'focus' ? (st.seconds ? focusTime : focusTime.slice(0, focusTime.length - 3) + 'm') : trayMode === 'trade' ? (weekend ? 'Weekend' : 'NY ' + (ny.open ? 'open · ' : '') + fmtTray(ny.delta)) : '';
+
+    return {
+      trayFocus: trayMode === 'focus',
+      trayTrade: trayMode === 'trade',
+      trayIcon: trayMode === 'icon',
+      trayText,
+      trayOffset: (138.2 * (1 - prog)).toFixed(1),
+      nowShort: clock(wat),
+      nowWat: clock(wat) + ':' + pad(wat % 60),
+      showFocus: st.tab === 'focus',
+      showTrading: st.tab === 'trading',
+      tabs, trayModes, settings, menu,
+      focusTime, focusOffset: (226.2 * (1 - prog)).toFixed(1),
+      focusPlay: st.running ? 'Pause' : 'Resume',
+      toggleFocus: () => this.setState({ running: !this.state.running }),
+      addFive: () => this.setState({ left: this.state.left + 300 }),
+      shieldChecked: st.shield ? 'true' : 'false',
+      shieldSub: st.shield ? 'On · 14 sites, 6 apps blocked' : 'Off',
+      toggleShield: () => this.setState({ shield: !this.state.shield }),
+      shieldTrack: this.sw(st.shield, '#5BD69A'),
+      nyLabel: weekend ? 'Weekend · window reopens Monday 15:30' : ny.open ? 'Your window is open · closes in' : 'Your window opens in',
+      nyTime: weekend ? '—' : hms(ny.delta),
+      rows, needleStyle, sessions,
+      checkCount: done + ' of ' + items.length,
+      checkBar: 'height: 100%; border-radius: 999px; background: #5BD69A; width: ' + Math.round(done / items.length * 100) + '%',
+      hasNext: nextIdx !== -1,
+      noNext: nextIdx === -1,
+      nextItem: nextIdx === -1 ? '' : items[nextIdx],
+      tickNext: () => { const i = this.state.checks.indexOf(false); if (i === -1) return; const n = this.state.checks.slice(); n[i] = true; this.setState({ checks: n }); },
+      scores, scoreNote, scoreNoteStyle
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halo — Menu bar, mini timer and overlays</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0B0C10}
+a{color:#F2B544}a:hover{color:#FFD488}
+textarea::placeholder,input::placeholder{color:#8A8E9E}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 940px; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; color: #F2F2F5; background: radial-gradient(1000px 700px at 18% 20%, rgba(242,181,68,0.22), rgba(242,181,68,0) 60%), radial-gradient(900px 700px at 90% 90%, rgba(108,182,255,0.20), rgba(108,182,255,0) 60%), #0B0C10">
+
+<div style="position: absolute; left: 0; top: 0; right: 0; height: 30px; display: flex; align-items: center; gap: 20px; padding: 0 18px; background: rgba(20,21,28,0.55); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px">
+<span style="font-weight: 600">Halo</span><span style="color: #C9CBD5">File</span><span style="color: #C9CBD5">Edit</span><span style="color: #C9CBD5">Session</span><span style="color: #C9CBD5">Window</span>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 5px; background: rgba(255,255,255,0.16); font-variant-numeric: tabular-nums"><svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="118 20.23" transform="rotate(-50 32 32)"></circle><circle cx="37.1" cy="10.6" r="4.5" fill="#FFFFFF"></circle></svg>18:24</span>
+<span style="color: #C9CBD5">Sat 21 Nov 10:31</span>
+</div>
+
+<div style="position: absolute; left: 1052px; top: 38px; width: 330px; display: flex; flex-direction: column; gap: 10px">
+<div style="padding: 16px; border-radius: 16px; background: rgba(28,29,38,0.86); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px">
+<svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label="63 percent of session done"><circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"></circle><circle cx="36" cy="36" r="30" fill="none" stroke="#F2B544" stroke-width="6" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="69.4" transform="rotate(-90 36 36)"></circle></svg>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 30px; font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">18:24</span>
+<span style="font-size: 12px; color: #A9ACBA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Write matching-engine tests</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex: 1; height: 36px; border-radius: 10px; border: 0; background: #F2B544; color: #2A1D05; font-size: 13px; font-weight: 600; cursor: pointer">Pause</button>
+<button type="button" style="flex: 1; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-size: 13px; font-weight: 500; cursor: pointer">+5 min</button>
+<button type="button" style="flex: 1; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-size: 13px; font-weight: 500; cursor: pointer">End</button>
+</div>
+<div style="height: 1px; background: rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<div style="display: flex; justify-content: space-between"><span style="color: #A9ACBA">Today</span><span style="font-variant-numeric: tabular-nums">3h 20m of 5h</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #A9ACBA">Up next</span><span>Review hyperliquid-wasm PR</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #A9ACBA">Shield</span><span style="color: #5BD69A">On · Strict</span></div>
+</div>
+<div style="display: flex; gap: 8px">
+<a href="Main.dc.html" style="flex: 1; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.06); color: #F2F2F5; font-size: 12px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Open Halo</a>
+<a href="Plan.dc.html" style="flex: 1; height: 34px; border-radius: 10px; background: rgba(255,255,255,0.06); color: #F2F2F5; font-size: 12px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Today plan</a>
+</div>
+</div>
+<span style="font-size: 11px; color: #8A8E9E; text-align: right">Menu bar popover</span>
+</div>
+
+<div style="position: absolute; left: 72px; top: 58px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; color: #8A8E9E">Floating mini timer · always on top</span>
+<div style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 8px 0 14px; border-radius: 999px; background: rgba(28,29,38,0.82); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.45); width: fit-content">
+<svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="7"></circle><circle cx="32" cy="32" r="22" fill="none" stroke="#F2B544" stroke-width="7" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="51" transform="rotate(-90 32 32)"></circle></svg>
+<span style="font-size: 20px; font-weight: 400; font-variant-numeric: tabular-nums">18:24</span>
+<span style="font-size: 13px; color: #A9ACBA; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Matching-engine tests</span>
+<button type="button" aria-label="Pause" style="width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.10); color: #F2F2F5; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"></path></svg></button>
+</div>
+</div>
+
+<div style="position: absolute; left: 72px; top: 152px; width: 390px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; color: #8A8E9E">Mid-session check-in · native notification</span>
+<div style="padding: 14px; border-radius: 16px; background: rgba(36,37,46,0.88); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 16px 40px rgba(0,0,0,0.45); display: flex; gap: 12px">
+<svg width="36" height="36" viewBox="0 0 260 260" aria-hidden="true"><rect x="6" y="6" width="248" height="248" rx="58" fill="#16171E"></rect><g transform="translate(34 34) scale(3)"><circle cx="32" cy="32" r="22" fill="none" stroke="#F2B544" stroke-width="7" stroke-linecap="round" stroke-dasharray="118 20.23" transform="rotate(-50 32 32)"></circle><circle cx="37.1" cy="10.6" r="4" fill="#F2B544"></circle></g></svg>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600">Still on it?</span><span style="font-size: 13px; color: #C9CBD5">Write matching-engine tests for meridian-rs</span></div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="height: 30px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(255,255,255,0.14); color: #F2F2F5; font-size: 12px; font-weight: 500; cursor: pointer">Yes, focused</button>
+<button type="button" style="height: 30px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(255,255,255,0.06); color: #C9CBD5; font-size: 12px; font-weight: 500; cursor: pointer">I drifted</button>
+</div>
+</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 72px; top: 318px; width: 400px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; color: #8A8E9E">Post-session reflection</span>
+<div style="padding: 22px; border-radius: 20px; background: rgba(28,29,38,0.88); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 24px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #F2B544">Session complete · 50:00</span>
+<span style="font-size: 20px; font-weight: 600; letter-spacing: -0.01em">How did it go?</span>
+</div>
+<div role="group" aria-label="Session rating" style="display: flex; gap: 6px">
+<button type="button" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: #A9ACBA; font-size: 13px; font-weight: 500; cursor: pointer">Rough</button>
+<button type="button" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: #A9ACBA; font-size: 13px; font-weight: 500; cursor: pointer">Okay</button>
+<button type="button" aria-pressed="true" style="flex: 1; height: 44px; border-radius: 10px; border: 1px solid #F2B544; background: rgba(242,181,68,0.16); color: #FFE2A6; font-size: 13px; font-weight: 600; cursor: pointer">Good</button>
+<button type="button" aria-pressed="false" style="flex: 1; height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: #A9ACBA; font-size: 13px; font-weight: 500; cursor: pointer">In flow</button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px">
+<span style="color: #C9CBD5">Distractions</span>
+<span style="display: flex; align-items: center; gap: 10px"><button type="button" aria-label="Fewer" style="width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-size: 16px; cursor: pointer">−</button><span style="font-variant-numeric: tabular-nums; font-weight: 600">2</span><button type="button" aria-label="More" style="width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-size: 16px; cursor: pointer">+</button></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="notes" style="font-size: 13px; color: #C9CBD5">Session notes</label>
+<textarea id="notes" rows="3" placeholder="Fill engine passes; cancel path still flaky on partial fills." style="resize: none; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04); color: #F2F2F5; font-family: inherit; font-size: 13px; line-height: 1.5; outline: none"></textarea>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex: 1; height: 42px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #F2F2F5; font-size: 13px; font-weight: 500; cursor: pointer">Keep going</button>
+<button type="button" style="flex: 1.4; height: 42px; border-radius: 12px; border: 0; background: #6CB6FF; color: #06213D; font-size: 13px; font-weight: 600; cursor: pointer">Start 10 min break</button>
+</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 520px; top: 58px; width: 500px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; color: #8A8E9E">Command palette · ⌘K from anywhere</span>
+<div style="border-radius: 16px; background: rgba(28,29,38,0.90); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 16px; height: 52px; border-bottom: 1px solid rgba(255,255,255,0.08)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A9ACBA" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+<label for="cmd" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Command</label>
+<input id="cmd" type="text" value="focus 50 on meridian" style="flex: 1; min-width: 0; height: 40px; border: 0; outline: none; background: transparent; color: #F2F2F5; font-family: inherit; font-size: 15px">
+</div>
+<div style="padding: 6px; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{commands}}" as="c" hint-placeholder-count="5">
+<div style="{{c.style}}"><span style="font-size: 13px; font-weight: 500; flex: 1">{{c.label}}</span><span style="font-size: 11px; color: #8A8E9E">{{c.hint}}</span></div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 520px; top: 450px; width: 864px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; color: #8A8E9E">Break overlay · fills every screen</span>
+<div style="height: 430px; border-radius: 20px; overflow: hidden; background: rgba(10,22,38,0.78); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px); border: 1px solid rgba(108,182,255,0.24); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center">
+<svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Break progress"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"></circle><circle cx="60" cy="60" r="52" fill="none" stroke="#6CB6FF" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="98" transform="rotate(-90 60 60)"></circle></svg>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 56px; font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1">07:02</span>
+<span style="font-size: 18px; font-weight: 500">Look at something 6 metres away for 20 seconds</span>
+<span style="font-size: 14px; color: #A9C6E6">Next: roll your shoulders 10 times, then stand and stretch.</span>
+</div>
+<div style="display: flex; gap: 10px">
+<button type="button" style="height: 40px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: transparent; color: #F2F2F5; font-size: 13px; font-weight: 500; cursor: pointer">Skip break</button>
+<button type="button" style="height: 40px; padding: 0 18px; border-radius: 999px; border: 0; background: #6CB6FF; color: #06213D; font-size: 13px; font-weight: 600; cursor: pointer">I’m stretching</button>
+</div>
+<span style="font-size: 12px; color: #8FA8C4">Skipping is off in strict mode. Keyboard and mouse stay free for an emergency.</span>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const base = 'display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; ';
+    const commands = [
+      { label: 'Start Deep 50 on meridian-rs', hint: 'Enter', on: true },
+      { label: 'Start Pomodoro 25 on meridian-rs', hint: '' },
+      { label: 'Add task to meridian-rs', hint: '⌘N' },
+      { label: 'Turn on strict mode', hint: '⌘⇧S' },
+      { label: 'Open trading checklist', hint: '⌘T' }
+    ].map((c) => ({ ...c, style: base + (c.on ? 'background: rgba(242,181,68,0.14); color: #FFE2A6;' : 'color: #E6E7EC;') }));
+    return { commands };
+  }
+}
+</script>
+</body>
+</html>
