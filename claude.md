@@ -41,7 +41,7 @@ Halo is a macOS-first focus app: a Session-style Pomodoro timer, daily planner, 
 **Desktop**
 - Menu bar timer and popover, floating always-on-top mini timer
 - Global hotkeys, ⌘K command palette
-- Offline-first local SQLite, native notifications
+- Offline-first local SQLite, synced to Supabase when signed in; native notifications
 
 **Trading desk**
 - Session clocks: Sydney, Tokyo, London, New York, shown in the user's time zone with live countdowns
@@ -51,7 +51,7 @@ Halo is a macOS-first focus app: a Session-style Pomodoro timer, daily planner, 
 
 **Later (v2)**
 - AI daily planner, AI task breakdown, AI weekly review
-- CLI and webhooks, cross-device sync
+- CLI and webhooks
 
 ## Stack
 
@@ -96,7 +96,8 @@ Add `crates/store/migrations/NNNN_name.sql` and append `include_str!("../migrati
   - `break-overlay`: one per display
   - `palette`: ⌘K
 - **Menu bar:** use the tray icon title on macOS for the countdown text. Monochrome template icon by default.
-- **Storage:** a SQLite file in the app data dir. Every schema change is a numbered migration. Never edit an applied migration.
+- **Storage:** a SQLite file in the app data dir is the source of truth; the app works fully offline. Every schema change is a numbered migration. Never edit an applied migration.
+- **Cloud sync (Supabase):** when the user signs in, sessions and settings sync to Supabase Postgres (`supabase/`). Rows have UUID text ids, `updated_at` (unix ms; newest wins), `deleted_at` (soft delete) and a local-only `synced_at` (NULL = needs upload). Every synced table change needs a local migration in `crates/store/migrations/` **and** a matching one in `supabase/migrations/` with row-level security. The app only ever holds the anon key, from `.env.cloud` at build time; never the service-role key.
 
 Layout:
 
@@ -119,6 +120,7 @@ packages/
   ui/                      # @halo/ui: tokens, Tailwind theme, shared presentational components
 crates/                    # pure Rust, no Tauri; fully unit-tested
   store/                   # halo-store: SQLite connection, migrations (repositories go here)
+supabase/                  # cloud schema (Postgres + RLS) mirroring the synced local tables
   timer/                   # (to add) halo-timer: engine, phases, overflow, check-ins
   trading/                 # (to add) halo-trading: session clocks, checklist, head check, chart time
 design/                    # canvas snapshot, logo, tokens (the live canvas is the source of truth)
@@ -235,6 +237,6 @@ pnpm tauri icon ../../design/logo/app-icon-dark-1024.png -o src-tauri/icons   # 
 
 - Read the design canvas before building or changing any screen.
 - Ask before adding a dependency, changing the DB schema, or requesting a new macOS permission.
-- Build v1 scope only. AI features and sync are v2.
+- Build v1 scope only. AI features are v2.
 - Time logic belongs in Rust. If you're about to compute a duration in TypeScript, stop and move it.
 - Keep this file current: update Stack and Commands once the project is scaffolded.
