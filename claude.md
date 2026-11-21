@@ -113,6 +113,7 @@ apps/
         tracking/          # frontmost app, idle detection (OS-bound)
         platform/macos/
         error.rs, state.rs, lib.rs
+  web/                     # placeholder (index.ts only); no web app in v1
 packages/
   core/                    # @halo/core: generated tauri-specta bindings (types + commands)
   ui/                      # @halo/ui: tokens, Tailwind theme, shared presentational components
@@ -229,6 +230,8 @@ pnpm tauri icon ../../design/logo/app-icon-dark-1024.png -o src-tauri/icons   # 
 ```
 
 ## Working rules for Claude
+
+- Work is split into phases in `.claude/phases/` (index in its README). Start one with `/phase <n>` and keep its checklist and status current.
 
 - Read the design canvas before building or changing any screen.
 - Ask before adding a dependency, changing the DB schema, or requesting a new macOS permission.
