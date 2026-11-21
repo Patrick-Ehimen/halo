@@ -20,11 +20,7 @@ export function MainWindow() {
       <h1 className="text-2xl font-semibold">Halo</h1>
       <p className="text-sm text-text-secondary">More deep work, less drift.</p>
       <p className="text-xs text-text-muted tabular-nums">
-        {error
-          ? `Core unavailable: ${error}`
-          : info
-            ? `v${info.version} · schema ${info.schemaVersion}`
-            : "Connecting to core"}
+        {error ? `Core unavailable: ${error}` : info ? `v${info.version}` : "Connecting to core"}
       </p>
     </main>
   );

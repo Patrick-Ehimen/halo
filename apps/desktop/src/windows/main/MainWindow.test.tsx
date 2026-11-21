@@ -10,6 +10,6 @@ describe("MainWindow", () => {
   it("renders and shows core info", async () => {
     render(<MainWindow />);
     expect(screen.getByRole("heading", { name: "Halo" })).toBeInTheDocument();
-    expect(await screen.findByText("v0.1.0 · schema 0")).toBeInTheDocument();
+    expect(await screen.findByText("v0.1.0")).toBeInTheDocument();
   });
 });
