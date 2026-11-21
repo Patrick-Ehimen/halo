@@ -1,0 +1,69 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Scan shared components; the app scans its own sources. */
+@source "../";
+
+/* Expose design tokens to Tailwind: bg-focus, text-text-secondary, rounded-card, ... */
+@theme inline {
+  --color-focus: var(--halo-focus);
+  --color-focus-ink: var(--halo-focus-ink);
+  --color-focus-soft: var(--halo-focus-soft);
+  --color-break: var(--halo-break);
+  --color-break-ink: var(--halo-break-ink);
+  --color-shield: var(--halo-shield);
+  --color-shield-ink: var(--halo-shield-ink);
+  --color-alert: var(--halo-alert);
+  --color-violet: var(--halo-project-violet);
+
+  --color-ink: var(--halo-ink);
+  --color-glass: var(--halo-glass);
+  --color-glass-popover: var(--halo-glass-popover);
+  --color-card: var(--halo-card);
+  --color-card-border: var(--halo-card-border);
+  --color-hairline: var(--halo-hairline);
+  --color-control: var(--halo-control);
+  --color-control-selected: var(--halo-control-selected);
+
+  --color-text: var(--halo-text);
+  --color-text-secondary: var(--halo-text-secondary);
+  --color-text-muted: var(--halo-text-muted);
+
+  --font-sans: "Inter Variable", var(--halo-font);
+
+  --radius-control: var(--halo-radius-control);
+  --radius-card: var(--halo-radius-card);
+  --radius-window: var(--halo-radius-window);
+  --radius-popover: var(--halo-radius-popover);
+
+  --spacing-hit: var(--halo-hit-target);
+
+  --shadow-window: var(--halo-shadow-window);
+  --shadow-popover: var(--halo-shadow-popover);
+}
+
+@utility glass {
+  background: var(--halo-glass);
+  backdrop-filter: var(--halo-glass-blur);
+  -webkit-backdrop-filter: var(--halo-glass-blur);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--halo-ink);
+    color: var(--halo-text);
+    font-family: "Inter Variable", var(--halo-font);
+    font-weight: var(--halo-weight-body);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    cursor: default;
+  }
+}

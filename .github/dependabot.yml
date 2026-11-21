@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # pnpm workspace root: covers apps/* and packages/* from one entry.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+      production-dependencies:
+        dependency-type: "production"
+    # tauri-specta and specta are pinned release candidates; bump them together by hand.
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+
+  # Cargo workspace root: covers apps/desktop/src-tauri and crates/*.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Pinned release candidates; upgrade together by hand.
+      - dependency-name: "tauri-specta"
+      - dependency-name: "specta"
+      - dependency-name: "specta-typescript"
+    labels:
+      - "dependencies"
+      - "rust"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"

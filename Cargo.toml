@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = ["apps/desktop/src-tauri", "crates/*"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[workspace.dependencies]
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+thiserror = "2.0.21"
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4.45", features = ["serde"] }
+chrono-tz = "0.10.4"
+halo-store = { path = "crates/store" }
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+
+# https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

@@ -1,0 +1,52 @@
+/* Halo design tokens — matches the design canvas. Dark theme is the default. */
+:root {
+  /* State colors */
+  --halo-focus: #f2b544; /* sessions, primary actions */
+  --halo-focus-ink: #2a1d05; /* text on focus */
+  --halo-focus-soft: #ffd488;
+  --halo-break: #6cb6ff; /* breaks, overflow */
+  --halo-break-ink: #06213d;
+  --halo-shield: #5bd69a; /* protected, trading window open */
+  --halo-shield-ink: #0b2a1b;
+  --halo-alert: #ff7a6b; /* strict, limits, sit-out */
+  --halo-project-violet: #c59cff;
+
+  /* Surfaces */
+  --halo-ink: #0b0c10; /* wallpaper base */
+  --halo-glass: rgba(20, 21, 28, 0.78); /* window panes */
+  --halo-glass-popover: rgba(28, 29, 38, 0.9); /* popovers, palette */
+  --halo-glass-blur: blur(40px) saturate(150%);
+  --halo-card: rgba(255, 255, 255, 0.045);
+  --halo-card-border: rgba(255, 255, 255, 0.08);
+  --halo-hairline: rgba(255, 255, 255, 0.06);
+  --halo-control: rgba(255, 255, 255, 0.05);
+  --halo-control-selected: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --halo-text: #f2f2f5;
+  --halo-text-secondary: #a9acba;
+  --halo-text-muted: #8a8e9e;
+
+  /* Type */
+  --halo-font: "Inter", system-ui, -apple-system, sans-serif;
+  --halo-weight-clock: 300;
+  --halo-weight-body: 400;
+  --halo-weight-label: 500;
+  --halo-weight-heading: 600;
+
+  /* Shape */
+  --halo-radius-control: 10px;
+  --halo-radius-card: 14px;
+  --halo-radius-window: 16px;
+  --halo-radius-popover: 18px;
+  --halo-hit-target: 44px;
+
+  /* Elevation */
+  --halo-shadow-window: 0 40px 100px rgba(0, 0, 0, 0.55);
+  --halo-shadow-popover: 0 28px 70px rgba(0, 0, 0, 0.55);
+}
+
+/* Every ticking number */
+.halo-tabular {
+  font-variant-numeric: tabular-nums;
+}

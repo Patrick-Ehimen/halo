@@ -1,0 +1,75 @@
+name: Release
+
+# Pushing a version tag (v0.1.0) builds Halo for Apple Silicon and Intel and
+# attaches the .dmg files to a draft GitHub release, to check and publish by hand.
+# Running it manually builds the same installers without a release (dry run);
+# they're kept as workflow artifacts.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            target: aarch64-apple-darwin
+          - name: macOS (Intel)
+            target: x86_64-apple-darwin
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Only a tag push creates the release; a manual run just builds.
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          args: --target ${{ matrix.target }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          releaseName: Halo ${{ github.ref_name }}
+          releaseBody: |
+            Requires macOS 13 (Ventura) or later.
+
+            The builds aren't code-signed yet, so macOS warns on first launch: open it
+            once, then go to System Settings > Privacy & Security and choose Open Anyway.
+          releaseDraft: true
+          prerelease: false
+
+      - name: Keep the installers (dry run)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: halo-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error

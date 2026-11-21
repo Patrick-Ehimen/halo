@@ -1,0 +1,8 @@
+#!/bin/sh
+# Enabled by `pnpm install` (prepare -> git config core.hooksPath .githooks).
+# Fast checks only; clippy and the test suites run in CI.
+set -e
+pnpm lint
+pnpm format:check
+pnpm typecheck
+cargo fmt --all --check
