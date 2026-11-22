@@ -1,27 +1,23 @@
 import { useEffect, useState } from "react";
-import { HaloMark } from "@halo/ui";
-import { getAppInfo, type AppInfo } from "../../features/app/api";
+import { getAppInfo } from "../../features/app/api";
+import { FocusScreen } from "../../features/focus/FocusScreen";
+import { Sidebar } from "./Sidebar";
 
 export function MainWindow() {
-  const [info, setInfo] = useState<AppInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
     getAppInfo()
-      .then(setInfo)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+      .then((info) => setVersion(info.version))
+      .catch(() => setVersion(null));
   }, []);
 
   return (
-    <main className="flex h-full flex-col items-center justify-center gap-4">
-      {/* Drag region under the overlay title bar */}
-      <div data-tauri-drag-region className="fixed inset-x-0 top-0 h-10" />
-      <HaloMark size={72} />
-      <h1 className="text-2xl font-semibold">Halo</h1>
-      <p className="text-sm text-text-secondary">More deep work, less drift.</p>
-      <p className="text-xs text-text-muted tabular-nums">
-        {error ? `Core unavailable: ${error}` : info ? `v${info.version}` : "Connecting to core"}
-      </p>
-    </main>
+    <div className="flex h-full bg-[radial-gradient(1100px_700px_at_10%_6%,rgba(242,181,68,0.14),transparent_60%),radial-gradient(1000px_700px_at_94%_96%,rgba(108,182,255,0.10),transparent_60%)]">
+      <Sidebar version={version} />
+      <main className="flex min-w-0 flex-1 flex-col">
+        <FocusScreen />
+      </main>
+    </div>
   );
 }

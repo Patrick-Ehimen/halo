@@ -1,0 +1,12 @@
+[package]
+name = "halo-timer"
+version = "0.1.0"
+description = "Halo timer engine: presets, Flowtime, overflow, breaks, pauses. Pure, std only."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

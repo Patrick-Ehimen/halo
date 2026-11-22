@@ -7,6 +7,9 @@ use std::path::Path;
 
 pub use rusqlite::Connection;
 
+pub mod sessions;
+pub mod settings;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("sqlite: {0}")]
@@ -17,7 +20,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Ordered migrations. Index + 1 is the schema version stored in `PRAGMA user_version`.
 /// Add `migrations/NNNN_name.sql` and append `include_str!("../migrations/NNNN_name.sql")` here.
-const MIGRATIONS: &[&str] = &[];
+const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_sessions_settings.sql")];
 
 pub fn open(path: &Path) -> Result<Connection> {
     let mut conn = Connection::open(path)?;

@@ -1554,6 +1554,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "halo-store",
+ "halo-timer",
  "serde",
  "serde_json",
  "specta",
@@ -1575,6 +1576,10 @@ dependencies = [
  "rusqlite",
  "thiserror 2.0.21",
 ]
+
+[[package]]
+name = "halo-timer"
+version = "0.1.0"
 
 [[package]]
 name = "hashbrown"

@@ -2,3 +2,4 @@
 //! and map errors to `IpcError`. No logic lives here.
 
 pub mod app;
+pub mod timer;

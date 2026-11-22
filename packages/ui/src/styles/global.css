@@ -50,6 +50,11 @@
 }
 
 @layer base {
+  :root {
+    /* Native controls (date pickers, selects, scrollbars) in dark style. */
+    color-scheme: dark;
+  }
+
   html,
   body,
   #root {

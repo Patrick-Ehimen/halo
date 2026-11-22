@@ -4,10 +4,37 @@
 
 import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 import type { InvokeOptions } from "@tauri-apps/api/core";
+import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
 	appInfo: (options?: InvokeOptions) => typedError<AppInfo, IpcError>(__TAURI_INVOKE("app_info", undefined, options)),
+	timerState: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_state", undefined, options)),
+	/**  Starts a focus session with an intention. Skips a pending break. */
+	timerStart: (preset: PresetId, intention: string, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_start", { preset, intention }, options)),
+	timerSelectPreset: (preset: PresetId, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_select_preset", { preset }, options)),
+	/**  Starts the waiting phase: a pending break, or focus with the current preset. */
+	timerStartPending: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_start_pending", undefined, options)),
+	timerPause: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_pause", undefined, options)),
+	timerResume: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_resume", undefined, options)),
+	timerExtend: (minutes: number, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_extend", { minutes }, options)),
+	timerEnd: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_end", undefined, options)),
+	/**  Focus saved today, in the user's local day. */
+	todayFocus: (options?: InvokeOptions) => typedError<TodayFocus, IpcError>(__TAURI_INVOKE("today_focus", undefined, options)),
+	timerSettings: (options?: InvokeOptions) => typedError<TimerSettings_Serialize, IpcError>(__TAURI_INVOKE("timer_settings", undefined, options)),
+	/**  Saves timer settings. The running phase keeps its length; the rest applies now. */
+	timerSetSettings: (settings: TimerSettings_Deserialize, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_set_settings", { settings }, options)),
+	/**
+	 *  Logs a session done away from the timer. `started` is the local date and
+	 *  time from a `datetime-local` input, e.g. `2026-11-22T09:30`.
+	 */
+	logSession: (kind: SessionKind, started: string, minutes: number, intention: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("log_session", { kind, started, minutes, intention }, options)),
+};
+
+/** Events */
+export const events = {
+	timerPhase: makeEvent<TimerPhaseEvent, TimerPhaseEvent>("timer://phase"),
+	timerTick: makeEvent<TimerTick_Serialize, TimerTick_Deserialize>("timer://tick"),
 };
 
 /* Types */
@@ -17,7 +44,108 @@ export type AppInfo = {
 };
 
 /**  Error shape sent over IPC. Typed on the TS side via tauri-specta. */
-export type IpcError = { kind: "db"; message: string } | { kind: "io"; message: string } | { kind: "internal"; message: string };
+export type IpcError = { kind: "db"; message: string } | { kind: "io"; message: string } | 
+/**  The timer refused an action (e.g. no pauses left). The message is user-facing. */
+{ kind: "timer"; message: string } | { kind: "internal"; message: string };
+
+export type PresetId = "pomodoro" | "deep" | "flowtime";
+
+export type SessionKind = "pomodoro" | "deep" | "flowtime" | "custom";
+
+export type TimerPhase = "focus" | "shortBreak" | "longBreak";
+
+/**  Emitted on every phase change, for notifications and sounds. */
+export type TimerPhaseEvent = { type: "phaseStarted"; phase: TimerPhase } | { type: "goalReached" } | { type: "focusEnded"; completed: boolean; focusedMs: number } | { type: "breakEnded"; skipped: boolean };
+
+/**  Timer settings, as stored under the `timer` settings key and edited in the UI. */
+export type TimerSettings = TimerSettings_Serialize | TimerSettings_Deserialize;
+
+/**  Timer settings, as stored under the `timer` settings key and edited in the UI. */
+export type TimerSettings_Deserialize = {
+	overflow: boolean,
+	autoStartBreaks: boolean,
+	autoStartFocus: boolean,
+	/**  `null` means unlimited. */
+	pauseLimit?: number | null,
+	longBreakEvery: number,
+};
+
+/**  Timer settings, as stored under the `timer` settings key and edited in the UI. */
+export type TimerSettings_Serialize = {
+	overflow: boolean,
+	autoStartBreaks: boolean,
+	autoStartFocus: boolean,
+	/**  `null` means unlimited. */
+	pauseLimit: number | null,
+	longBreakEvery: number,
+};
+
+/**  Everything a window needs to draw the timer. */
+export type TimerSnapshot = TimerSnapshot_Serialize | TimerSnapshot_Deserialize;
+
+/**  Everything a window needs to draw the timer. */
+export type TimerSnapshot_Deserialize = {
+	phase: TimerPhase,
+	status: TimerStatus,
+	kind: SessionKind,
+	/**  Length of the phase; 0 for a Flowtime focus session. */
+	plannedMs: number,
+	elapsedMs: number,
+	/**  Negative while overflowing; `-elapsedMs` for Flowtime. */
+	remainingMs: number,
+	overflowing: boolean,
+	/**  Flowtime only: the break earned so far. 0 otherwise. */
+	earnedBreakMs: number,
+	/**  Ring fill in thousandths (0..=1000). Flowtime fills once an hour. */
+	progressPermille: number,
+	completedInCycle: number,
+	longBreakEvery: number,
+	/**  `null` when unlimited or on a break. */
+	pausesLeft?: number | null,
+	overflowEnabled: boolean,
+	autoStartBreaks: boolean,
+	intention: string,
+};
+
+/**  Everything a window needs to draw the timer. */
+export type TimerSnapshot_Serialize = {
+	phase: TimerPhase,
+	status: TimerStatus,
+	kind: SessionKind,
+	/**  Length of the phase; 0 for a Flowtime focus session. */
+	plannedMs: number,
+	elapsedMs: number,
+	/**  Negative while overflowing; `-elapsedMs` for Flowtime. */
+	remainingMs: number,
+	overflowing: boolean,
+	/**  Flowtime only: the break earned so far. 0 otherwise. */
+	earnedBreakMs: number,
+	/**  Ring fill in thousandths (0..=1000). Flowtime fills once an hour. */
+	progressPermille: number,
+	completedInCycle: number,
+	longBreakEvery: number,
+	/**  `null` when unlimited or on a break. */
+	pausesLeft: number | null,
+	overflowEnabled: boolean,
+	autoStartBreaks: boolean,
+	intention: string,
+};
+
+export type TimerStatus = "idle" | "running" | "paused";
+
+/**  Emitted whenever the shown second or the timer state changes. */
+export type TimerTick = TimerTick_Serialize | TimerTick_Deserialize;
+
+/**  Emitted whenever the shown second or the timer state changes. */
+export type TimerTick_Deserialize = TimerSnapshot_Deserialize;
+
+/**  Emitted whenever the shown second or the timer state changes. */
+export type TimerTick_Serialize = TimerSnapshot_Serialize;
+
+export type TodayFocus = {
+	focusedSecs: number,
+	sessions: number,
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
@@ -27,4 +155,29 @@ async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; dat
         if (e instanceof Error) throw e;
         return { status: "error", error: e as any };
     }
+}
+
+type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;
+
+type EventEmitTo<T> = [T] extends [null] ? (target: __TAURI_EVENT.EventTarget | string) => Promise<void> : (target: __TAURI_EVENT.EventTarget | string, payload: T) => Promise<void>;
+
+function makeEvent<TListen, TEmit = TListen>(name: string, serialize?: (payload: TEmit) => unknown, deserialize?: (payload: any) => TListen) {
+    const mapEvent = (cb: __TAURI_EVENT.EventCallback<TListen>) => (event: __TAURI_EVENT.Event<any>) => cb({ ...event, payload: deserialize ? deserialize(event.payload) : event.payload });
+    const mapPayload = (payload: TEmit) => serialize ? serialize(payload) : payload;
+
+    const base = {
+        listen: (cb: __TAURI_EVENT.EventCallback<TListen>) => __TAURI_EVENT.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<TListen>) => __TAURI_EVENT.once(name, mapEvent(cb)),
+        emit: ((payload: TEmit) => __TAURI_EVENT.emit(name, mapPayload(payload)) as unknown) as EventEmit<TEmit>,
+        emitTo: ((to: __TAURI_EVENT.EventTarget | string, payload: TEmit) => __TAURI_EVENT.emitTo(to, name, mapPayload(payload)) as unknown) as EventEmitTo<TEmit>
+    };
+
+    const fn = (target: import("@tauri-apps/api/webview").Webview | import("@tauri-apps/api/window").Window) => ({
+        listen: (cb: __TAURI_EVENT.EventCallback<TListen>) => target.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<TListen>) => target.once(name, mapEvent(cb)),
+        emit: ((payload: TEmit) => target.emit(name, mapPayload(payload)) as unknown) as EventEmit<TEmit>,
+        emitTo: ((to: __TAURI_EVENT.EventTarget | string, payload: TEmit) => target.emitTo(to, name, mapPayload(payload)) as unknown) as EventEmitTo<TEmit>
+    });
+
+    return Object.assign(fn, base);
 }

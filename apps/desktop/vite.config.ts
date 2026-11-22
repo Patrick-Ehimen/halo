@@ -10,6 +10,11 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
 
+  // Pre-bundle up front so a first-time discovery can't reload the page mid-render.
+  optimizeDeps: {
+    include: ["react", "react-dom", "zustand", "@tauri-apps/api/core", "@tauri-apps/api/event"],
+  },
+
   // Vite options for `tauri dev` / `tauri build`:
   // 1. don't obscure Rust errors
   clearScreen: false,

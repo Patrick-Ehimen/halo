@@ -34,3 +34,6 @@ dist-ssr
 
 .claude/
 
+!.env.cloud.example
+
+text.txt
