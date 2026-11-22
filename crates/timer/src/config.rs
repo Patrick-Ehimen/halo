@@ -103,6 +103,28 @@ impl Default for Config {
     }
 }
 
+/// Allowed range for [`Config::long_break_every`].
+pub const LONG_BREAK_EVERY: std::ops::RangeInclusive<u32> = 2..=8;
+/// Highest pause limit; above it, use unlimited (`None`).
+pub const MAX_PAUSE_LIMIT: u32 = 5;
+
+impl Config {
+    /// Checks a config coming from settings before the engine uses it.
+    pub fn validate(&self) -> crate::Result<()> {
+        if !LONG_BREAK_EVERY.contains(&self.long_break_every) {
+            return Err(crate::Error::Invalid(
+                "Long break interval must be between 2 and 8 sessions",
+            ));
+        }
+        if self.pause_limit.is_some_and(|n| n > MAX_PAUSE_LIMIT) {
+            return Err(crate::Error::Invalid(
+                "Pause limit must be 5 or less, or unlimited",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// The break earned by a Flowtime session: about a fifth of the time focused,
 /// rounded to the nearest minute, and at least one minute.
 pub fn flowtime_break_ms(focused_ms: u64) -> u64 {
@@ -125,6 +147,31 @@ mod tests {
     fn flowtime_break_is_at_least_a_minute() {
         assert_eq!(flowtime_break_ms(0), MINUTE);
         assert_eq!(flowtime_break_ms(2 * MINUTE), MINUTE);
+    }
+
+    #[test]
+    fn default_config_is_valid() {
+        assert_eq!(Config::default().validate(), Ok(()));
+    }
+
+    #[test]
+    fn validate_rejects_out_of_range_settings() {
+        let bad_interval = Config {
+            long_break_every: 1,
+            ..Config::default()
+        };
+        assert!(bad_interval.validate().is_err());
+        let too_many_pauses = Config {
+            pause_limit: Some(6),
+            ..Config::default()
+        };
+        assert!(too_many_pauses.validate().is_err());
+        let unlimited = Config {
+            pause_limit: None,
+            long_break_every: 8,
+            ..Config::default()
+        };
+        assert_eq!(unlimited.validate(), Ok(()));
     }
 
     #[test]

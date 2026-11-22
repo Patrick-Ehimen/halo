@@ -11,8 +11,12 @@
 
 mod config;
 mod engine;
+mod manual;
 
-pub use config::{Config, Kind, MINUTE, Preset, SECOND, flowtime_break_ms};
+pub use config::{
+    Config, Kind, LONG_BREAK_EVERY, MAX_PAUSE_LIMIT, MINUTE, Preset, SECOND, flowtime_break_ms,
+};
 pub use engine::{
     Error, Millis, Phase, Result, SessionSummary, Snapshot, Status, Timer, Transition,
 };
+pub use manual::{MAX_MANUAL_MINUTES, manual_session};

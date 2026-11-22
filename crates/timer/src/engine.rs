@@ -70,6 +70,8 @@ pub enum Error {
     NotFocus,
     /// Flowtime has no goal to extend.
     NoGoal,
+    /// A setting or manual entry is out of range. The message is user-facing.
+    Invalid(&'static str),
 }
 
 impl fmt::Display for Error {
@@ -82,6 +84,7 @@ impl fmt::Display for Error {
             Error::PauseLimitReached => "no pauses left this session",
             Error::NotFocus => "only a focus session can be extended",
             Error::NoGoal => "Flowtime has no goal to extend",
+            Error::Invalid(message) => message,
         })
     }
 }
