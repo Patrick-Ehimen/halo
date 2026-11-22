@@ -5,6 +5,7 @@ mod error;
 mod platform;
 mod shield;
 mod state;
+mod timer;
 mod tracking;
 
 use tauri::Manager;
@@ -22,8 +23,22 @@ const BINDINGS_PATH: &str = concat!(
 fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Result)
-        .commands(collect_commands![commands::app::app_info])
-        .events(collect_events![])
+        .commands(collect_commands![
+            commands::app::app_info,
+            commands::timer::timer_state,
+            commands::timer::timer_start,
+            commands::timer::timer_select_preset,
+            commands::timer::timer_start_pending,
+            commands::timer::timer_pause,
+            commands::timer::timer_resume,
+            commands::timer::timer_extend,
+            commands::timer::timer_end,
+            commands::timer::today_focus,
+            commands::timer::timer_settings,
+            commands::timer::timer_set_settings,
+            commands::timer::log_session,
+        ])
+        .events(collect_events![timer::TimerTick, timer::TimerPhaseEvent])
 }
 
 fn export_bindings(builder: &Builder<tauri::Wry>) -> Result<(), String> {
@@ -58,16 +73,50 @@ pub fn run() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let conn = halo_store::open(&data_dir.join("halo.db"))?;
-            app.manage(AppState::new(conn));
+            let state = AppState::new(conn);
+            timer::load_settings(&state)?;
+            app.manage(state);
+            timer::spawn_driver(app.handle().clone());
 
             Ok(())
         })
-        .run(tauri::generate_context!());
+        .on_window_event(|window, event| {
+            // On macOS, closing the main window hides it; the timer keeps
+            // running and the Dock icon brings it back. ⌘Q quits.
+            #[cfg(target_os = "macos")]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+            {
+                api.prevent_close();
+                if let Err(e) = window.hide() {
+                    eprintln!("hide main window: {e}");
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (window, event);
+        })
+        .build(tauri::generate_context!());
 
-    if let Err(e) = result {
-        eprintln!("halo failed to start: {e}");
-        std::process::exit(1);
-    }
+    let app = match result {
+        Ok(app) => app,
+        Err(e) => {
+            eprintln!("halo failed to start: {e}");
+            std::process::exit(1);
+        }
+    };
+
+    app.run(|_handle, _event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } = _event
+            && let Some(window) = _handle.get_webview_window("main")
+            && let Err(e) = window.show().and_then(|()| window.set_focus())
+        {
+            eprintln!("show main window: {e}");
+        }
+    });
 }
 
 #[cfg(test)]

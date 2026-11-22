@@ -1554,6 +1554,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "halo-store",
+ "halo-timer",
  "serde",
  "serde_json",
  "specta",

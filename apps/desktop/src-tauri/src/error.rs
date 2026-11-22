@@ -10,6 +10,10 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("tauri: {0}")]
     Tauri(#[from] tauri::Error),
+    #[error("{0}")]
+    Timer(halo_timer::Error),
+    #[error("settings: {0}")]
+    Json(#[from] serde_json::Error),
     #[error("state lock poisoned")]
     Poisoned,
 }
@@ -22,6 +26,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum IpcError {
     Db(String),
     Io(String),
+    /// The timer refused an action (e.g. no pauses left). The message is user-facing.
+    Timer(String),
     Internal(String),
 }
 
@@ -31,7 +37,8 @@ impl From<Error> for IpcError {
         match err {
             Error::Db(_) => Self::Db(message),
             Error::Io(_) => Self::Io(message),
-            Error::Tauri(_) | Error::Poisoned => Self::Internal(message),
+            Error::Timer(_) => Self::Timer(message),
+            Error::Tauri(_) | Error::Json(_) | Error::Poisoned => Self::Internal(message),
         }
     }
 }
