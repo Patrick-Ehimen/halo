@@ -3,7 +3,7 @@
 Halo is a macOS-first focus app: a Session-style Pomodoro timer, daily planner, distraction blocker, and a trading-discipline desk. It's a desktop app built with **Tauri v2** (Rust core) and a **TypeScript** UI. The goal is one thing: more deep work, less drift.
 
 - Owner: 0xOse (Seraph Labz)
-- Status: scaffolded (Tauri shell, IPC bindings, DB migration runner); no features yet
+- Status: phase 1 done (timer engine, Focus screen, sessions saved locally); phase 2 next
 - Design canvas (source of truth for UI): https://claude.ai/artifact/6KUBniDhU2wna5WumwFeqf
 
 ## Product scope (v1)
@@ -119,10 +119,10 @@ packages/
   core/                    # @halo/core: generated tauri-specta bindings (types + commands)
   ui/                      # @halo/ui: tokens, Tailwind theme, shared presentational components
 crates/                    # pure Rust, no Tauri; fully unit-tested
-  store/                   # halo-store: SQLite connection, migrations (repositories go here)
-supabase/                  # cloud schema (Postgres + RLS) mirroring the synced local tables
-  timer/                   # (to add) halo-timer: engine, phases, overflow, check-ins
+  store/                   # halo-store: SQLite connection, migrations, repositories (sessions, settings)
+  timer/                   # halo-timer: engine, presets, Flowtime, overflow, manual log (std only)
   trading/                 # (to add) halo-trading: session clocks, checklist, head check, chart time
+supabase/                  # cloud schema (Postgres + RLS) mirroring the synced local tables
 design/                    # canvas snapshot, logo, tokens (the live canvas is the source of truth)
 docs/screenshots/          # README images, rendered from design/ by scripts/screenshots/render.sh
 .github/                   # CI (TS on Ubuntu, Rust on macOS), release (tag v* -> draft .dmg release), dependabot
