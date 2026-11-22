@@ -9,6 +9,24 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 /** Commands */
 export const commands = {
 	appInfo: (options?: InvokeOptions) => typedError<AppInfo, IpcError>(__TAURI_INVOKE("app_info", undefined, options)),
+	/**  Shows the main window (and closes the popover). */
+	openMainWindow: (options?: InvokeOptions) => __TAURI_INVOKE<void>("open_main_window", undefined, options),
+	quitApp: (options?: InvokeOptions) => __TAURI_INVOKE<void>("quit_app", undefined, options),
+	hidePopover: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("hide_popover", undefined, options)),
+	setMiniVisible: (visible: boolean, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("set_mini_visible", { visible }, options)),
+	miniVisible: (options?: InvokeOptions) => __TAURI_INVOKE<boolean>("mini_visible", undefined, options),
+	getPrefs: (options?: InvokeOptions) => __TAURI_INVOKE<Prefs_Serialize>("get_prefs", undefined, options),
+	setPrefs: (prefs: Prefs_Deserialize, options?: InvokeOptions) => typedError<Prefs_Serialize, IpcError>(__TAURI_INVOKE("set_prefs", { prefs }, options)),
+	togglePalette: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("toggle_palette", undefined, options)),
+	hidePalette: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("hide_palette", undefined, options)),
+	/**  Shows the main window and opens a panel there (settings, manual log). */
+	requestUi: (action: UiAction, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("request_ui", { action }, options)),
+	/**  Closes the check-in card without answering. */
+	dismissCheckIn: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("dismiss_check_in", undefined, options)),
+	/**  Closes the break overlay; the break itself keeps running. */
+	closeBreakOverlay: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("close_break_overlay", undefined, options)),
+	/**  Answers "Still on it?". "I drifted" also counts a distraction. */
+	checkIn: (response: CheckInResponse, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("check_in", { response }, options)),
 	timerState: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_state", undefined, options)),
 	/**  Starts a focus session with an intention. Skips a pending break. */
 	timerStart: (preset: PresetId, intention: string, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_start", { preset, intention }, options)),
@@ -35,6 +53,7 @@ export const commands = {
 export const events = {
 	timerPhase: makeEvent<TimerPhaseEvent, TimerPhaseEvent>("timer://phase"),
 	timerTick: makeEvent<TimerTick_Serialize, TimerTick_Deserialize>("timer://tick"),
+	uiRequest: makeEvent<UiRequest, UiRequest>("ui://request"),
 };
 
 /* Types */
@@ -43,10 +62,43 @@ export type AppInfo = {
 	schemaVersion: number,
 };
 
+/**  An answer to "Still on it?". */
+export type CheckInResponse = "focused" | "drifted";
+
 /**  Error shape sent over IPC. Typed on the TS side via tauri-specta. */
 export type IpcError = { kind: "db"; message: string } | { kind: "io"; message: string } | 
 /**  The timer refused an action (e.g. no pauses left). The message is user-facing. */
 { kind: "timer"; message: string } | { kind: "internal"; message: string };
+
+export type MenubarShows = 
+/**  The ring and the time. */
+"timer" | 
+/**  The ring alone. */
+"icon";
+
+export type Prefs = Prefs_Serialize | Prefs_Deserialize;
+
+export type Prefs_Deserialize = {
+	/**  Native notifications when a session completes, a goal is reached, or a break ends. */
+	notifications?: boolean,
+	/**  Cover every display during breaks. */
+	breakOverlay?: boolean,
+	menubarShows?: MenubarShows,
+	menubarSeconds?: boolean,
+	/**  Template icon that matches other menu bar icons; off uses Halo's colours. */
+	menubarMonochrome?: boolean,
+};
+
+export type Prefs_Serialize = {
+	/**  Native notifications when a session completes, a goal is reached, or a break ends. */
+	notifications: boolean,
+	/**  Cover every display during breaks. */
+	breakOverlay: boolean,
+	menubarShows: MenubarShows,
+	menubarSeconds: boolean,
+	/**  Template icon that matches other menu bar icons; off uses Halo's colours. */
+	menubarMonochrome: boolean,
+};
 
 export type PresetId = "pomodoro" | "deep" | "flowtime";
 
@@ -55,7 +107,7 @@ export type SessionKind = "pomodoro" | "deep" | "flowtime" | "custom";
 export type TimerPhase = "focus" | "shortBreak" | "longBreak";
 
 /**  Emitted on every phase change, for notifications and sounds. */
-export type TimerPhaseEvent = { type: "phaseStarted"; phase: TimerPhase } | { type: "goalReached" } | { type: "focusEnded"; completed: boolean; focusedMs: number } | { type: "breakEnded"; skipped: boolean };
+export type TimerPhaseEvent = { type: "phaseStarted"; phase: TimerPhase } | { type: "goalReached" } | { type: "focusEnded"; completed: boolean; focusedMs: number } | { type: "breakEnded"; skipped: boolean } | { type: "checkInDue" };
 
 /**  Timer settings, as stored under the `timer` settings key and edited in the UI. */
 export type TimerSettings = TimerSettings_Serialize | TimerSettings_Deserialize;
@@ -68,6 +120,8 @@ export type TimerSettings_Deserialize = {
 	/**  `null` means unlimited. */
 	pauseLimit?: number | null,
 	longBreakEvery: number,
+	/**  "Still on it?" every this many minutes; `null` turns check-ins off. */
+	checkInMinutes?: number | null,
 };
 
 /**  Timer settings, as stored under the `timer` settings key and edited in the UI. */
@@ -78,6 +132,8 @@ export type TimerSettings_Serialize = {
 	/**  `null` means unlimited. */
 	pauseLimit: number | null,
 	longBreakEvery: number,
+	/**  "Still on it?" every this many minutes; `null` turns check-ins off. */
+	checkInMinutes: number | null,
 };
 
 /**  Everything a window needs to draw the timer. */
@@ -145,6 +201,13 @@ export type TimerTick_Serialize = TimerSnapshot_Serialize;
 export type TodayFocus = {
 	focusedSecs: number,
 	sessions: number,
+};
+
+export type UiAction = "openSettings" | "logSession";
+
+/**  Asks the main window to open a panel. Emitted after the window is shown. */
+export type UiRequest = {
+	action: UiAction,
 };
 
 /* Tauri Specta runtime */

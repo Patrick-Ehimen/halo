@@ -20,7 +20,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 serde.workspace = true
 serde_json = "1"
 tauri-plugin-global-shortcut = "2.4.1"
@@ -35,6 +35,7 @@ specta = { version = "=2.0.0-rc.28", features = ["derive", "chrono"] }
 specta-typescript = "=0.0.15"
 halo-store.workspace = true
 halo-timer.workspace = true
+halo-menubar.workspace = true
 
 [lints]
 workspace = true
