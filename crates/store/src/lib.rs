@@ -7,6 +7,7 @@ use std::path::Path;
 
 pub use rusqlite::Connection;
 
+pub mod check_ins;
 pub mod sessions;
 pub mod settings;
 
@@ -20,7 +21,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Ordered migrations. Index + 1 is the schema version stored in `PRAGMA user_version`.
 /// Add `migrations/NNNN_name.sql` and append `include_str!("../migrations/NNNN_name.sql")` here.
-const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_sessions_settings.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("../migrations/0001_sessions_settings.sql"),
+    include_str!("../migrations/0002_check_ins.sql"),
+];
 
 pub fn open(path: &Path) -> Result<Connection> {
     let mut conn = Connection::open(path)?;
