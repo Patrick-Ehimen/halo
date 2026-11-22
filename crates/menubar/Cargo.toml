@@ -1,0 +1,13 @@
+[package]
+name = "halo-menubar"
+version = "0.1.0"
+description = "Halo menu bar item: title text and template ring icon. Pure, no Tauri."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+halo-timer.workspace = true
+
+[lints]
+workspace = true
