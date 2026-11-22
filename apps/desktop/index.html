@@ -5,10 +5,112 @@
     <link rel="icon" type="image/svg+xml" href="/halo-mark.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Halo</title>
+    <style>
+      /* Splash: inline so it paints before any script or stylesheet loads. */
+      html,
+      body {
+        margin: 0;
+        background: #0b0c10;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background:
+          radial-gradient(700px 500px at 50% 42%, rgba(242, 181, 68, 0.12), transparent 70%),
+          #0b0c10;
+        transition: opacity 320ms ease;
+      }
+      #splash.is-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash .ring {
+        stroke-dasharray: 118 20.23;
+        stroke-dashoffset: 138.23;
+        animation: splash-draw 900ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      #splash .dot {
+        transform-origin: 37.1px 10.6px;
+        transform: scale(0);
+        animation: splash-pop 320ms 700ms cubic-bezier(0.3, 1.6, 0.5, 1) forwards;
+      }
+      #splash .mark {
+        animation: splash-breathe 2400ms 1100ms ease-in-out infinite;
+      }
+      #splash .word {
+        font:
+          600 22px/1 "Inter Variable",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        letter-spacing: -0.03em;
+        color: #f2f2f5;
+        opacity: 0;
+        animation: splash-fade 400ms 600ms ease forwards;
+      }
+      @keyframes splash-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes splash-pop {
+        to {
+          transform: scale(1);
+        }
+      }
+      @keyframes splash-fade {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes splash-breathe {
+        50% {
+          opacity: 0.72;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash .ring,
+        #splash .dot,
+        #splash .word,
+        #splash .mark {
+          animation: none;
+          stroke-dashoffset: 0;
+          transform: none;
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
 
   <body>
+    <div id="splash" role="status" aria-label="Loading Halo">
+      <svg class="mark" width="88" height="88" viewBox="0 0 64 64" aria-hidden="true">
+        <circle
+          class="ring"
+          cx="32"
+          cy="32"
+          r="22"
+          fill="none"
+          stroke="#F2B544"
+          stroke-width="6"
+          stroke-linecap="round"
+          transform="rotate(-50 32 32)"
+        />
+        <circle class="dot" cx="37.1" cy="10.6" r="3.6" fill="#F2B544" />
+      </svg>
+      <span class="word">halo</span>
+    </div>
     <div id="root"></div>
+    <script>
+      // Never leave the splash up if the app fails to start.
+      setTimeout(() => document.getElementById("splash")?.classList.add("is-done"), 8000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

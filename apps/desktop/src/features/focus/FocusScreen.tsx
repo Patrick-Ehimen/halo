@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useDismiss } from "@halo/ui";
+import { useEffect, useRef, useState } from "react";
+import { hideSplash } from "../../splash";
 import { Controls } from "./components/Controls";
 import { IntentionCard } from "./components/IntentionCard";
 import { ManualLogDialog } from "./components/ManualLogDialog";
@@ -16,9 +18,17 @@ export function FocusScreen() {
   const actions = useFocusStore();
   const [intention, setIntention] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  useDismiss(settingsRef, () => setSettingsOpen(false), settingsOpen);
   const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => connect(), [connect]);
+
+  // The launch splash stays up until there's a timer to show (or an error).
+  const ready = snapshot !== null || error !== null;
+  useEffect(() => {
+    if (ready) hideSplash();
+  }, [ready]);
 
   useEffect(() => {
     if (!error) return;
@@ -57,7 +67,7 @@ export function FocusScreen() {
           disabled={!idle || !inFocus}
           onChange={(p) => void actions.selectPreset(p)}
         />
-        <div className="relative">
+        <div ref={settingsRef} className="relative">
           <button
             type="button"
             aria-label="Timer settings"

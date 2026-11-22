@@ -51,7 +51,7 @@ export function describe(s: TimerSnapshot): {
       label: s.status === "paused" ? "Paused" : "Flowtime",
       sub:
         s.status === "idle"
-          ? "Counts up. Your break grows as you focus."
+          ? "Your break grows as you focus"
           : `Break earned: ${formatMinutes(s.earnedBreakMs)}`,
       accent: "focus",
     };

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Dropdown } from "@halo/ui";
 import type { TimerSettings } from "../api";
 
 type SettingsPanelProps = {
@@ -34,38 +36,18 @@ function Toggle({
       />
       <span
         aria-hidden="true"
-        className="relative h-[26px] w-11 shrink-0 rounded-full bg-white/14 transition-colors peer-checked:bg-shield peer-focus-visible:outline-2 peer-focus-visible:outline-focus after:absolute after:top-[3px] after:left-[3px] after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-[18px]"
+        className="relative h-[26px] w-11 shrink-0 rounded-full bg-white/14 transition-colors peer-checked:bg-focus peer-focus-visible:outline-2 peer-focus-visible:outline-focus after:absolute after:top-[3px] after:left-[3px] after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-[18px]"
       />
     </label>
   );
 }
 
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="flex min-h-11 items-center justify-between gap-4 py-2">
+    <div className="flex min-h-11 items-center justify-between gap-4 py-2">
       <span className="text-[13px] font-medium">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-control border border-white/10 bg-control px-2.5 text-[13px] text-text"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+      {children}
+    </div>
   );
 }
 
@@ -75,9 +57,6 @@ export function SettingsPanel({ settings: s, onChange, onClose }: SettingsPanelP
     <div
       role="dialog"
       aria-label="Timer settings"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-      }}
       className="absolute top-full right-0 z-20 mt-2 w-[340px] rounded-popover border border-white/10 bg-glass-popover p-4 shadow-popover backdrop-blur-[40px]"
     >
       <div className="mb-1 flex items-center justify-between">
@@ -109,24 +88,28 @@ export function SettingsPanel({ settings: s, onChange, onClose }: SettingsPanelP
           checked={s.autoStartFocus}
           onChange={(autoStartFocus) => update({ autoStartFocus })}
         />
-        <Select
-          label="Pauses per session"
-          value={s.pauseLimit === null ? "unlimited" : String(s.pauseLimit)}
-          options={PAUSE_OPTIONS.map((v) => ({
-            value: v,
-            label: v === "unlimited" ? "Unlimited" : v,
-          }))}
-          onChange={(v) => update({ pauseLimit: v === "unlimited" ? null : Number(v) })}
-        />
-        <Select
-          label="Long break every"
-          value={String(s.longBreakEvery)}
-          options={[2, 3, 4, 5, 6, 7, 8].map((n) => ({
-            value: String(n),
-            label: `${n} sessions`,
-          }))}
-          onChange={(v) => update({ longBreakEvery: Number(v) })}
-        />
+        <Row label="Pauses per session">
+          <Dropdown
+            label="Pauses per session"
+            value={s.pauseLimit === null ? "unlimited" : String(s.pauseLimit)}
+            options={PAUSE_OPTIONS.map((v) => ({
+              value: v,
+              label: v === "unlimited" ? "Unlimited" : v,
+            }))}
+            onChange={(v) => update({ pauseLimit: v === "unlimited" ? null : Number(v) })}
+          />
+        </Row>
+        <Row label="Long break every">
+          <Dropdown
+            label="Long break every"
+            value={String(s.longBreakEvery)}
+            options={[2, 3, 4, 5, 6, 7, 8].map((n) => ({
+              value: String(n),
+              label: `${n} sessions`,
+            }))}
+            onChange={(v) => update({ longBreakEvery: Number(v) })}
+          />
+        </Row>
       </div>
     </div>
   );

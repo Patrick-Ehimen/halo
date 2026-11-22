@@ -157,4 +157,54 @@ describe("FocusScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Log session" }));
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
   });
+
+  it("picks a pause limit from the custom dropdown", async () => {
+    api.timerApi.state.mockResolvedValue(idle);
+    api.timerApi.setSettings.mockResolvedValue({ ...idle, pausesLeft: null });
+    render(<FocusScreen />);
+
+    const button = await screen.findByRole("button", { name: "Timer settings" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole("button", { name: /Pauses per session/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Unlimited" }));
+
+    expect(api.timerApi.setSettings).toHaveBeenCalledWith({ ...settings, pauseLimit: null });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Timer settings" })).toBeInTheDocument();
+  });
+
+  it("closes settings on a click outside, but not inside", async () => {
+    api.timerApi.state.mockResolvedValue(idle);
+    api.timerApi.setSettings.mockResolvedValue(idle);
+    render(<FocusScreen />);
+
+    const button = await screen.findByRole("button", { name: "Timer settings" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    const panel = screen.getByRole("dialog", { name: "Timer settings" });
+
+    fireEvent.pointerDown(screen.getByRole("switch", { name: /Overflow/ }));
+    expect(panel).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("timer"));
+    expect(screen.queryByRole("dialog", { name: "Timer settings" })).not.toBeInTheDocument();
+  });
+
+  it("closes only the dropdown on Escape, then the panel", async () => {
+    api.timerApi.state.mockResolvedValue(idle);
+    render(<FocusScreen />);
+
+    const button = await screen.findByRole("button", { name: "Timer settings" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole("button", { name: /Long break every/ }));
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Timer settings" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Timer settings" })).not.toBeInTheDocument();
+  });
 });

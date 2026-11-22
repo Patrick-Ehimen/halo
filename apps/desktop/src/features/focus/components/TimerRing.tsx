@@ -60,7 +60,9 @@ export function TimerRing({ progressPermille, accent, label, clock, sub }: Timer
         >
           {clock}
         </span>
-        <span className="text-[13px] text-text-muted">{sub}</span>
+        <span className="max-w-[220px] text-center text-[13px] leading-snug text-balance text-text-muted">
+          {sub}
+        </span>
       </div>
     </div>
   );
