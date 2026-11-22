@@ -14,7 +14,8 @@ mod engine;
 mod manual;
 
 pub use config::{
-    Config, Kind, LONG_BREAK_EVERY, MAX_PAUSE_LIMIT, MINUTE, Preset, SECOND, flowtime_break_ms,
+    CHECK_IN_EVERY_MIN, Config, Kind, LONG_BREAK_EVERY, MAX_PAUSE_LIMIT, MINUTE, Preset, SECOND,
+    flowtime_break_ms,
 };
 pub use engine::{
     Error, Millis, Phase, Result, SessionSummary, Snapshot, Status, Timer, Transition,
