@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { appApi, type Prefs } from "../app/api";
 import {
   subscribeTimer,
   timerApi,
@@ -13,6 +14,7 @@ type FocusState = {
   snapshot: TimerSnapshot | null;
   today: TodayFocus | null;
   settings: TimerSettings | null;
+  prefs: Prefs | null;
   error: string | null;
   /** Loads the current state and follows timer events. Returns a cleanup. */
   connect: () => () => void;
@@ -24,6 +26,7 @@ type FocusState = {
   extend: (minutes: number) => Promise<void>;
   end: () => Promise<void>;
   saveSettings: (settings: TimerSettings) => Promise<void>;
+  savePrefs: (prefs: Prefs) => Promise<void>;
   /** Resolves to an error message, or null once saved. */
   logSession: (
     kind: SessionKind,
@@ -55,8 +58,13 @@ export const useFocusStore = create<FocusState>((set, get) => {
     snapshot: null,
     today: null,
     settings: null,
+    prefs: null,
     error: null,
     connect: () => {
+      void appApi
+        .getPrefs()
+        .then((prefs) => set({ prefs }))
+        .catch(() => {});
       void run(timerApi.state);
       void refreshToday();
       void timerApi
@@ -84,6 +92,15 @@ export const useFocusStore = create<FocusState>((set, get) => {
         set({ snapshot: await timerApi.setSettings(settings), error: null });
       } catch (e) {
         set({ settings: previous, error: e instanceof Error ? e.message : String(e) });
+      }
+    },
+    savePrefs: async (prefs) => {
+      const previous = get().prefs;
+      set({ prefs });
+      try {
+        set({ prefs: await appApi.setPrefs(prefs), error: null });
+      } catch (e) {
+        set({ prefs: previous, error: e instanceof Error ? e.message : String(e) });
       }
     },
     logSession: async (kind, started, minutes, intention) => {

@@ -20,6 +20,9 @@
   --color-ink: var(--halo-ink);
   --color-glass: var(--halo-glass);
   --color-glass-popover: var(--halo-glass-popover);
+  /* Solid popover surface, for windows over the desktop where blur can't
+     reach what's behind (the menu bar popover) and for menus inside panels. */
+  --color-surface: #1c1d26;
   --color-card: var(--halo-card);
   --color-card-border: var(--halo-card-border);
   --color-hairline: var(--halo-hairline);
@@ -59,6 +62,11 @@
   body,
   #root {
     height: 100%;
+  }
+
+  html.is-transparent,
+  html.is-transparent body {
+    background: transparent;
   }
 
   body {

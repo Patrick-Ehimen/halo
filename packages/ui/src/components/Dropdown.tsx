@@ -117,7 +117,7 @@ export function Dropdown<T extends string>({ label, value, options, onChange }: 
           aria-labelledby={`${id}-label`}
           aria-activedescendant={`${id}-opt-${active}`}
           onKeyDown={onListKey}
-          className="absolute top-full right-0 z-30 mt-1.5 max-h-64 min-w-full overflow-auto rounded-card border border-white/10 bg-[#1c1d26] p-1 shadow-popover outline-none"
+          className="absolute top-full right-0 z-30 mt-1.5 max-h-64 min-w-full overflow-auto rounded-card border border-white/10 bg-surface p-1 shadow-popover outline-none"
         >
           {options.map((o, i) => {
             const isSelected = i === selected;
