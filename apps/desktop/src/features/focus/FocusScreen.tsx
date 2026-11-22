@@ -1,0 +1,156 @@
+import { useEffect, useState } from "react";
+import { Controls } from "./components/Controls";
+import { IntentionCard } from "./components/IntentionCard";
+import { ManualLogDialog } from "./components/ManualLogDialog";
+import { ModeSwitcher } from "./components/ModeSwitcher";
+import { RoundDots } from "./components/RoundDots";
+import { SettingChips } from "./components/SettingChips";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { AmbienceCard, ShieldCard, TodayCard, UpNextCard } from "./components/SideCards";
+import { TimerRing } from "./components/TimerRing";
+import { describe, presetOf } from "./format";
+import { useFocusStore } from "./store";
+
+export function FocusScreen() {
+  const { snapshot, today, settings, error, connect, clearError } = useFocusStore();
+  const actions = useFocusStore();
+  const [intention, setIntention] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
+
+  useEffect(() => connect(), [connect]);
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(clearError, 4000);
+    return () => clearTimeout(t);
+  }, [error, clearError]);
+
+  if (!snapshot) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-text-muted">
+        {error ? `Timer unavailable: ${error}` : "Loading timer"}
+      </div>
+    );
+  }
+
+  const view = describe(snapshot);
+  const preset = presetOf(snapshot);
+  const idle = snapshot.status === "idle";
+  const inFocus = snapshot.phase === "focus";
+  const startFocus = () => {
+    void actions.start(preset, intention);
+    setIntention("");
+  };
+
+  return (
+    <>
+      <header
+        data-tauri-drag-region
+        className="flex flex-wrap items-center gap-3 border-b border-hairline px-7 py-4"
+      >
+        <h1 data-tauri-drag-region className="flex-1 text-lg font-semibold tracking-[-0.01em]">
+          Focus
+        </h1>
+        <ModeSwitcher
+          value={preset}
+          disabled={!idle || !inFocus}
+          onChange={(p) => void actions.selectPreset(p)}
+        />
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Timer settings"
+            aria-expanded={settingsOpen}
+            disabled={!settings}
+            onClick={() => setSettingsOpen((open) => !open)}
+            className="flex size-11 items-center justify-center rounded-control border border-white/8 bg-control text-text-secondary transition-colors hover:text-text disabled:opacity-40"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+              <circle cx="16" cy="6" r="2" />
+              <circle cx="10" cy="12" r="2" />
+              <circle cx="18" cy="18" r="2" />
+            </svg>
+          </button>
+          {settingsOpen && settings && (
+            <SettingsPanel
+              settings={settings}
+              onChange={(s) => void actions.saveSettings(s)}
+              onClose={() => setSettingsOpen(false)}
+            />
+          )}
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-wrap overflow-auto">
+        <section
+          aria-label="Current session"
+          className="flex min-w-0 flex-[999_1_440px] flex-col items-center justify-center gap-[22px] px-7 py-8"
+        >
+          {inFocus || idle ? (
+            <IntentionCard
+              editable={idle}
+              value={idle ? intention : snapshot.intention}
+              onChange={setIntention}
+              onSubmit={startFocus}
+            />
+          ) : (
+            <p className="text-[15px] text-text-secondary">Step away from the screen.</p>
+          )}
+
+          <TimerRing
+            progressPermille={idle ? 0 : snapshot.progressPermille}
+            accent={view.accent}
+            label={idle && inFocus ? "Ready" : view.label}
+            clock={view.clock}
+            sub={view.sub}
+          />
+
+          <RoundDots
+            completed={snapshot.completedInCycle}
+            total={snapshot.longBreakEvery}
+            inFocus={inFocus}
+          />
+
+          <Controls
+            phase={snapshot.phase}
+            status={snapshot.status}
+            canExtend={snapshot.kind !== "flowtime"}
+            pausesLeft={snapshot.pausesLeft}
+            onStartFocus={startFocus}
+            onStartBreak={() => void actions.startPending()}
+            onPause={() => void actions.pause()}
+            onResume={() => void actions.resume()}
+            onExtend={() => void actions.extend(5)}
+            onEnd={() => void actions.end()}
+          />
+
+          <SettingChips snapshot={snapshot} />
+
+          <p role="status" aria-live="polite" className="min-h-5 text-[13px] text-alert">
+            {error}
+          </p>
+        </section>
+
+        <aside className="flex flex-[1_1_300px] flex-col gap-3.5 border-l border-hairline px-6 py-7">
+          <TodayCard today={today} onLog={() => setLogOpen(true)} />
+          <UpNextCard />
+          <ShieldCard />
+          <AmbienceCard />
+        </aside>
+      </div>
+
+      {logOpen && <ManualLogDialog onSave={actions.logSession} onClose={() => setLogOpen(false)} />}
+    </>
+  );
+}
