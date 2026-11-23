@@ -3,7 +3,7 @@
 Halo is a macOS-first focus app: a Session-style Pomodoro timer, daily planner, distraction blocker, and a trading-discipline desk. It's a desktop app built with **Tauri v2** (Rust core) and a **TypeScript** UI. The goal is one thing: more deep work, less drift.
 
 - Owner: 0xOse (Seraph Labz)
-- Status: phases 1–2 done (timer, Focus screen, menu bar, popover, mini timer, check-ins, break overlay, palette); phase 3 next
+- Status: phases 1–3 done (timer, menu bar and windows, goals and today plan); phase 4 (stats) next
 - Design canvas (source of truth for UI): https://claude.ai/artifact/6KUBniDhU2wna5WumwFeqf
 
 ## Product scope (v1)
@@ -119,9 +119,10 @@ packages/
   core/                    # @halo/core: generated tauri-specta bindings (types + commands)
   ui/                      # @halo/ui: tokens, Tailwind theme, shared presentational components
 crates/                    # pure Rust, no Tauri; fully unit-tested
-  store/                   # halo-store: SQLite connection, migrations, repositories (sessions, check-ins, settings)
+  store/                   # halo-store: SQLite connection, migrations, repositories (sessions, check-ins, settings, goals, milestones, projects, tasks, time blocks)
   timer/                   # halo-timer: engine, presets, Flowtime, overflow, check-ins, manual log (std only)
   menubar/                 # halo-menubar: menu bar title text and template ring icon (pure)
+  plan/                    # halo-plan: quick-add parser, repeats, goal progress and pace, local-day math
   trading/                 # (to add) halo-trading: session clocks, checklist, head check, chart time
 supabase/                  # cloud schema (Postgres + RLS) mirroring the synced local tables
 design/                    # canvas snapshot, logo, tokens (the live canvas is the source of truth)
@@ -134,7 +135,8 @@ docs/screenshots/          # README images, rendered from design/ by scripts/scr
 
 - `Session`: id, kind (pomodoro / deep / flowtime / custom), planned_secs, started_at, ended_at, overflow_secs, intention, project_id, task_id, strict, rating, distractions, notes
 - `CheckIn`: session_id, at, response (focused / drifted)
-- `Project`, `Task` (estimate_sessions, done_sessions, parent_id, recurrence), `TimeBlock`
+- `Goal` (target_sessions, due_on, status), `Milestone` (goal_id, due_on, done_at)
+- `Project` (goal_id, optional), `Task` (estimate_sessions, parent_id, milestone_id, planned_on, due_at, recurrence), `TimeBlock`. Sessions done is counted from `sessions.task_id`, never stored.
 - `ShieldRule`: kind (site / app), value, schedule (always / focus-only / outside-trading-window)
 - `ChecklistItem`, `ChecklistRun`: date, item_id, checked_at
 - `HeadCheck`: at, score 1–5, factors[]
