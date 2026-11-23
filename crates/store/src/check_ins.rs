@@ -57,6 +57,8 @@ mod tests {
                 planned_secs: 3000,
                 started_at: 1,
                 intention: "",
+                task_id: None,
+                project_id: None,
             },
             1,
         )

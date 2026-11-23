@@ -52,6 +52,9 @@ pub struct StartedSession<'a> {
     pub planned_secs: u32,
     pub started_at: i64,
     pub intention: &'a str,
+    /// The task it was started from, if any, and that task's project.
+    pub task_id: Option<&'a str>,
+    pub project_id: Option<&'a str>,
 }
 
 /// How far a session got: written as it runs and when it ends.
@@ -65,10 +68,19 @@ pub struct Progress {
 
 pub fn start(conn: &Connection, s: &StartedSession<'_>, now: i64) -> Result<String> {
     let id = conn.query_row(
-        "INSERT INTO sessions (kind, source, planned_secs, started_at, intention, updated_at)
-         VALUES (?1, 'timer', ?2, ?3, ?4, ?5)
+        "INSERT INTO sessions (kind, source, planned_secs, started_at, intention, task_id,
+                               project_id, updated_at)
+         VALUES (?1, 'timer', ?2, ?3, ?4, ?5, ?6, ?7)
          RETURNING id",
-        params![s.kind, s.planned_secs, s.started_at, s.intention, now],
+        params![
+            s.kind,
+            s.planned_secs,
+            s.started_at,
+            s.intention,
+            s.task_id,
+            s.project_id,
+            now
+        ],
         |row| row.get(0),
     )?;
     Ok(id)
@@ -120,6 +132,15 @@ pub fn discard(conn: &Connection, id: &str, now: i64) -> Result<()> {
     conn.execute(
         "UPDATE sessions SET deleted_at = ?2, updated_at = ?2, synced_at = NULL WHERE id = ?1",
         params![id, now],
+    )?;
+    Ok(())
+}
+
+/// A note on a session, written during or after it.
+pub fn set_notes(conn: &Connection, id: &str, notes: &str, now: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET notes = ?2, updated_at = ?3, synced_at = NULL WHERE id = ?1",
+        params![id, notes, now],
     )?;
     Ok(())
 }
@@ -238,6 +259,8 @@ mod tests {
             planned_secs: 3000,
             started_at,
             intention: "Write tests",
+            task_id: None,
+            project_id: None,
         }
     }
 

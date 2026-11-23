@@ -27,6 +27,33 @@ export const commands = {
 	closeBreakOverlay: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("close_break_overlay", undefined, options)),
 	/**  Answers "Still on it?". "I drifted" also counts a distraction. */
 	checkIn: (response: CheckInResponse, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("check_in", { response }, options)),
+	/**  Starts a focus session on a task. */
+	timerStartTask: (taskId: string, preset: PresetId, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_start_task", { taskId, preset }, options)),
+	/**  Saves a note on the running focus session. */
+	timerSetNote: (note: string, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_set_note", { note }, options)),
+	planView: (options?: InvokeOptions) => typedError<PlanView_Serialize, IpcError>(__TAURI_INVOKE("plan_view", undefined, options)),
+	quickAddPreview: (text: string, options?: InvokeOptions) => typedError<QuickAddPreview_Serialize, IpcError>(__TAURI_INVOKE("quick_add_preview", { text }, options)),
+	quickAdd: (text: string, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("quick_add", { text }, options)),
+	goalCreate: (form: GoalForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("goal_create", { form }, options)),
+	goalUpdate: (id: string, form: GoalForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("goal_update", { id, form }, options)),
+	goalSetDone: (id: string, done: boolean, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("goal_set_done", { id, done }, options)),
+	goalDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("goal_delete", { id }, options)),
+	milestoneCreate: (goalId: string, title: string, dueOn: string | null, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("milestone_create", { goalId, title, dueOn }, options)),
+	milestoneSetDone: (id: string, done: boolean, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("milestone_set_done", { id, done }, options)),
+	milestoneDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("milestone_delete", { id }, options)),
+	projectCreate: (form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("project_create", { form }, options)),
+	projectUpdate: (id: string, form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_update", { id, form }, options)),
+	projectArchive: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_archive", { id }, options)),
+	taskCreate: (form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("task_create", { form }, options)),
+	taskUpdate: (id: string, form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_update", { id, form }, options)),
+	/**  Finishes a task; a repeating one comes back on its next day. */
+	taskComplete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_complete", { id }, options)),
+	taskReopen: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_reopen", { id }, options)),
+	taskDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_delete", { id }, options)),
+	/**  Puts a block on today's timeline. */
+	blockCreate: (taskId: string | null, title: string, start: string, minutes: number, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("block_create", { taskId, title, start, minutes }, options)),
+	blockMove: (id: string, start: string, minutes: number, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("block_move", { id, start, minutes }, options)),
+	blockDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("block_delete", { id }, options)),
 	timerState: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_state", undefined, options)),
 	/**  Starts a focus session with an intention. Skips a pending break. */
 	timerStart: (preset: PresetId, intention: string, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_start", { preset, intention }, options)),
@@ -51,6 +78,7 @@ export const commands = {
 
 /** Events */
 export const events = {
+	planChanged: makeEvent<PlanChanged, PlanChanged>("plan://changed"),
 	timerPhase: makeEvent<TimerPhaseEvent, TimerPhaseEvent>("timer://phase"),
 	timerTick: makeEvent<TimerTick_Serialize, TimerTick_Deserialize>("timer://tick"),
 	uiRequest: makeEvent<UiRequest, UiRequest>("ui://request"),
@@ -62,19 +90,187 @@ export type AppInfo = {
 	schemaVersion: number,
 };
 
+export type BlockView = BlockView_Serialize | BlockView_Deserialize;
+
+export type BlockView_Deserialize = {
+	id: string,
+	taskId?: string | null,
+	title: string,
+	/**  `focus`, `event` or `break`. */
+	kind: string,
+	startMinute: number,
+	endMinute: number,
+	/**  "09:30–11:30". */
+	label: string,
+};
+
+export type BlockView_Serialize = {
+	id: string,
+	taskId: string | null,
+	title: string,
+	/**  `focus`, `event` or `break`. */
+	kind: string,
+	startMinute: number,
+	endMinute: number,
+	/**  "09:30–11:30". */
+	label: string,
+};
+
 /**  An answer to "Still on it?". */
 export type CheckInResponse = "focused" | "drifted";
+
+export type GoalForm = GoalForm_Serialize | GoalForm_Deserialize;
+
+export type GoalForm_Deserialize = {
+	title: string,
+	why: string,
+	targetSessions: number,
+	dueOn?: string | null,
+	color: string,
+};
+
+export type GoalForm_Serialize = {
+	title: string,
+	why: string,
+	targetSessions: number,
+	dueOn: string | null,
+	color: string,
+};
+
+export type GoalView = GoalView_Serialize | GoalView_Deserialize;
+
+export type GoalView_Deserialize = {
+	id: string,
+	title: string,
+	why: string,
+	color: string,
+	/**  `active` or `done`. */
+	status: string,
+	targetSessions: number,
+	dueOn?: string | null,
+	/**  "15 Mar 2027". */
+	dueLabel?: string | null,
+	/**  "16 weeks left", "3 days left", "Due today", "2 weeks overdue". */
+	timeLeft?: string | null,
+	doneSessions: number,
+	percent: number,
+	pace: PaceView,
+	/**  Sessions a week to finish on time, in tenths (45 = 4.5). */
+	neededPerWeekTenths?: number | null,
+	/**  Sessions a week over the last four weeks, in tenths. */
+	averagedPerWeekTenths: number,
+	/**  Finished sessions in the current week (Monday start). */
+	thisWeek: number,
+	/**  Sessions still to do on today's tasks for this goal. */
+	todaySessions: number,
+	/**  What the goal's tasks' estimates add up to (a hint for the target). */
+	estimateTotal: number,
+	milestones: MilestoneView_Deserialize[],
+};
+
+export type GoalView_Serialize = {
+	id: string,
+	title: string,
+	why: string,
+	color: string,
+	/**  `active` or `done`. */
+	status: string,
+	targetSessions: number,
+	dueOn: string | null,
+	/**  "15 Mar 2027". */
+	dueLabel: string | null,
+	/**  "16 weeks left", "3 days left", "Due today", "2 weeks overdue". */
+	timeLeft: string | null,
+	doneSessions: number,
+	percent: number,
+	pace: PaceView,
+	/**  Sessions a week to finish on time, in tenths (45 = 4.5). */
+	neededPerWeekTenths: number | null,
+	/**  Sessions a week over the last four weeks, in tenths. */
+	averagedPerWeekTenths: number,
+	/**  Finished sessions in the current week (Monday start). */
+	thisWeek: number,
+	/**  Sessions still to do on today's tasks for this goal. */
+	todaySessions: number,
+	/**  What the goal's tasks' estimates add up to (a hint for the target). */
+	estimateTotal: number,
+	milestones: MilestoneView_Serialize[],
+};
 
 /**  Error shape sent over IPC. Typed on the TS side via tauri-specta. */
 export type IpcError = { kind: "db"; message: string } | { kind: "io"; message: string } | 
 /**  The timer refused an action (e.g. no pauses left). The message is user-facing. */
-{ kind: "timer"; message: string } | { kind: "internal"; message: string };
+{ kind: "timer"; message: string } | 
+/**  Input the user can fix. The message is user-facing. */
+{ kind: "invalid"; message: string } | { kind: "internal"; message: string };
 
 export type MenubarShows = 
 /**  The ring and the time. */
 "timer" | 
 /**  The ring alone. */
 "icon";
+
+export type MilestoneView = MilestoneView_Serialize | MilestoneView_Deserialize;
+
+export type MilestoneView_Deserialize = {
+	id: string,
+	goalId: string,
+	title: string,
+	dueOn?: string | null,
+	/**  "Due 6 Dec", "Done 2 Nov". */
+	label: string,
+	done: boolean,
+};
+
+export type MilestoneView_Serialize = {
+	id: string,
+	goalId: string,
+	title: string,
+	dueOn: string | null,
+	/**  "Due 6 Dec", "Done 2 Nov". */
+	label: string,
+	done: boolean,
+};
+
+export type PaceView = "done" | "ahead" | "onPace" | "behind" | "overdue" | "noDeadline";
+
+/**  Emitted after anything in the plan changes, so every window refreshes. */
+export type PlanChanged = null;
+
+/**  Everything the Today plan and Goals screens draw. */
+export type PlanView = PlanView_Serialize | PlanView_Deserialize;
+
+/**  Everything the Today plan and Goals screens draw. */
+export type PlanView_Deserialize = {
+	date: string,
+	/**  "Saturday, 21 November". */
+	dateLabel: string,
+	/**  Minutes from local midnight, for the "now" line. */
+	nowMinute: number,
+	goals: GoalView_Deserialize[],
+	projects: ProjectView_Deserialize[],
+	/**  Today's tasks (with their subtasks). */
+	today: TaskView_Deserialize[],
+	/**  Every open top-level task, for the Goals screen and the palette. */
+	open: TaskView_Deserialize[],
+	blocks: BlockView_Deserialize[],
+};
+
+/**  Everything the Today plan and Goals screens draw. */
+export type PlanView_Serialize = {
+	date: string,
+	/**  "Saturday, 21 November". */
+	dateLabel: string,
+	/**  Minutes from local midnight, for the "now" line. */
+	nowMinute: number,
+	goals: GoalView_Serialize[],
+	projects: ProjectView_Serialize[],
+	/**  Today's tasks (with their subtasks). */
+	today: TaskView_Serialize[],
+	/**  Every open top-level task, for the Goals screen and the palette. */
+	open: TaskView_Serialize[],
+	blocks: BlockView_Serialize[],
+};
 
 export type Prefs = Prefs_Serialize | Prefs_Deserialize;
 
@@ -102,7 +298,154 @@ export type Prefs_Serialize = {
 
 export type PresetId = "pomodoro" | "deep" | "flowtime";
 
+export type ProjectForm = ProjectForm_Serialize | ProjectForm_Deserialize;
+
+export type ProjectForm_Deserialize = {
+	name: string,
+	color: string,
+	goalId?: string | null,
+};
+
+export type ProjectForm_Serialize = {
+	name: string,
+	color: string,
+	goalId: string | null,
+};
+
+export type ProjectView = ProjectView_Serialize | ProjectView_Deserialize;
+
+export type ProjectView_Deserialize = {
+	id: string,
+	goalId?: string | null,
+	name: string,
+	color: string,
+	openTasks: number,
+	/**  Estimated sessions left on its open tasks. */
+	sessionsLeft: number,
+};
+
+export type ProjectView_Serialize = {
+	id: string,
+	goalId: string | null,
+	name: string,
+	color: string,
+	openTasks: number,
+	/**  Estimated sessions left on its open tasks. */
+	sessionsLeft: number,
+};
+
+/**  What quick add understood, for the chips shown while typing. */
+export type QuickAddPreview = QuickAddPreview_Serialize | QuickAddPreview_Deserialize;
+
+/**  What quick add understood, for the chips shown while typing. */
+export type QuickAddPreview_Deserialize = {
+	title: string,
+	/**  "Tomorrow", "Fri 27 Nov". */
+	dateLabel?: string | null,
+	/**  "10:00". */
+	timeLabel?: string | null,
+	estimate?: number | null,
+	projectName?: string | null,
+	/**  False when `#name` matches no project (one will be made). */
+	projectExists: boolean,
+	goalTitle?: string | null,
+	recurrenceLabel?: string | null,
+};
+
+/**  What quick add understood, for the chips shown while typing. */
+export type QuickAddPreview_Serialize = {
+	title: string,
+	/**  "Tomorrow", "Fri 27 Nov". */
+	dateLabel: string | null,
+	/**  "10:00". */
+	timeLabel: string | null,
+	estimate: number | null,
+	projectName: string | null,
+	/**  False when `#name` matches no project (one will be made). */
+	projectExists: boolean,
+	goalTitle: string | null,
+	recurrenceLabel: string | null,
+};
+
 export type SessionKind = "pomodoro" | "deep" | "flowtime" | "custom";
+
+export type TaskForm = TaskForm_Serialize | TaskForm_Deserialize;
+
+export type TaskForm_Deserialize = {
+	title: string,
+	projectId?: string | null,
+	milestoneId?: string | null,
+	parentId?: string | null,
+	estimateSessions: number,
+	plannedOn?: string | null,
+	/**  Local `HH:MM` on `planned_on`. */
+	dueTime?: string | null,
+	recurrence?: string | null,
+};
+
+export type TaskForm_Serialize = {
+	title: string,
+	projectId: string | null,
+	milestoneId: string | null,
+	parentId: string | null,
+	estimateSessions: number,
+	plannedOn: string | null,
+	/**  Local `HH:MM` on `planned_on`. */
+	dueTime: string | null,
+	recurrence: string | null,
+};
+
+export type TaskView = TaskView_Serialize | TaskView_Deserialize;
+
+export type TaskView_Deserialize = {
+	id: string,
+	title: string,
+	projectId?: string | null,
+	milestoneId?: string | null,
+	parentId?: string | null,
+	estimateSessions: number,
+	doneSessions: number,
+	plannedOn?: string | null,
+	/**  Minutes from local midnight, when due on the day being shown. */
+	dueMinute?: number | null,
+	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
+	dueTime?: string | null,
+	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	dueEndMinute?: number | null,
+	/**  "10:00", "Tomorrow 10:00", "Fri". */
+	whenLabel?: string | null,
+	recurrence?: string | null,
+	/**  "Repeats weekdays". */
+	recurrenceLabel?: string | null,
+	completed: boolean,
+	/**  Planned before today and still open. */
+	overdue: boolean,
+};
+
+export type TaskView_Serialize = {
+	id: string,
+	title: string,
+	projectId: string | null,
+	milestoneId: string | null,
+	parentId: string | null,
+	estimateSessions: number,
+	doneSessions: number,
+	plannedOn: string | null,
+	/**  Minutes from local midnight, when due on the day being shown. */
+	dueMinute: number | null,
+	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
+	dueTime: string | null,
+	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	dueEndMinute: number | null,
+	/**  "10:00", "Tomorrow 10:00", "Fri". */
+	whenLabel: string | null,
+	recurrence: string | null,
+	/**  "Repeats weekdays". */
+	recurrenceLabel: string | null,
+	completed: boolean,
+	/**  Planned before today and still open. */
+	overdue: boolean,
+};
 
 export type TimerPhase = "focus" | "shortBreak" | "longBreak";
 
@@ -161,6 +504,10 @@ export type TimerSnapshot_Deserialize = {
 	overflowEnabled: boolean,
 	autoStartBreaks: boolean,
 	intention: string,
+	/**  The task the running focus session was started from. */
+	taskId?: string | null,
+	/**  A note on the running focus session. */
+	note: string,
 };
 
 /**  Everything a window needs to draw the timer. */
@@ -185,6 +532,10 @@ export type TimerSnapshot_Serialize = {
 	overflowEnabled: boolean,
 	autoStartBreaks: boolean,
 	intention: string,
+	/**  The task the running focus session was started from. */
+	taskId: string | null,
+	/**  A note on the running focus session. */
+	note: string,
 };
 
 export type TimerStatus = "idle" | "running" | "paused";

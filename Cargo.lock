@@ -1554,6 +1554,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "halo-menubar",
+ "halo-plan",
  "halo-store",
  "halo-timer",
  "serde",
@@ -1575,6 +1576,14 @@ name = "halo-menubar"
 version = "0.1.0"
 dependencies = [
  "halo-timer",
+]
+
+[[package]]
+name = "halo-plan"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "chrono-tz",
 ]
 
 [[package]]

@@ -8,8 +8,13 @@ use std::path::Path;
 pub use rusqlite::Connection;
 
 pub mod check_ins;
+pub mod goals;
+pub mod milestones;
+pub mod projects;
 pub mod sessions;
 pub mod settings;
+pub mod tasks;
+pub mod time_blocks;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -24,6 +29,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0001_sessions_settings.sql"),
     include_str!("../migrations/0002_check_ins.sql"),
+    include_str!("../migrations/0003_planning.sql"),
 ];
 
 pub fn open(path: &Path) -> Result<Connection> {
@@ -37,6 +43,61 @@ fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "foreign_keys", "ON")?;
     Ok(())
+}
+
+/// Deletes a row that never synced; marks a synced one deleted so the
+/// deletion syncs too. `table` is one of this crate's own table names.
+pub(crate) fn soft_or_hard_delete(
+    conn: &Connection,
+    table: &str,
+    id: &str,
+    now: i64,
+) -> Result<()> {
+    conn.execute(
+        &format!("DELETE FROM {table} WHERE id = ?1 AND synced_at IS NULL"),
+        [id],
+    )?;
+    conn.execute(
+        &format!(
+            "UPDATE {table} SET deleted_at = ?2, updated_at = ?2, synced_at = NULL WHERE id = ?1"
+        ),
+        rusqlite::params![id, now],
+    )?;
+    Ok(())
+}
+
+/// A migrated in-memory database with foreign keys on, for tests.
+#[cfg(test)]
+pub(crate) fn test_db() -> Connection {
+    let mut conn = Connection::open_in_memory().unwrap();
+    configure(&conn).unwrap();
+    migrate(&mut conn, MIGRATIONS).unwrap();
+    conn
+}
+
+/// A finished one-minute session started from `task_id`, for tests.
+#[cfg(test)]
+pub(crate) fn test_session(conn: &Connection, task_id: &str, started_at: i64) {
+    let id = sessions::start(
+        conn,
+        &sessions::StartedSession {
+            kind: "deep",
+            planned_secs: 3000,
+            started_at,
+            intention: "",
+            task_id: Some(task_id),
+            project_id: None,
+        },
+        started_at,
+    )
+    .unwrap();
+    let p = sessions::Progress {
+        planned_secs: 3000,
+        focused_secs: 60,
+        overflow_secs: 0,
+        pauses: 0,
+    };
+    sessions::finish(conn, &id, started_at + 60_000, &p, started_at).unwrap();
 }
 
 pub fn schema_version(conn: &Connection) -> Result<u32> {

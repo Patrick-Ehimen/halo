@@ -10,6 +10,11 @@ vi.mock("../../features/focus/FocusScreen", () => ({
   FocusScreen: () => <p>focus screen</p>,
 }));
 
+vi.mock("../../features/plan/api", () => ({
+  planApi: { view: vi.fn().mockResolvedValue(null) },
+  onPlanChanged: () => () => {},
+}));
+
 describe("MainWindow", () => {
   it("renders the sidebar and the focus screen", async () => {
     render(<MainWindow />);

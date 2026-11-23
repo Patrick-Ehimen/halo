@@ -10,6 +10,10 @@ vi.mock("../../features/focus/api", async () => {
   return { timerApi: m.timerApi, subscribeTimer: m.subscribeTimer };
 });
 vi.mock("../../features/app/api", async () => ({ appApi: (await mocks).appApi }));
+vi.mock("../../features/plan/api", () => ({
+  planApi: { view: vi.fn().mockResolvedValue(null), startTask: vi.fn(), quickAdd: vi.fn() },
+  onPlanChanged: () => () => {},
+}));
 
 describe("PaletteWindow", () => {
   beforeEach(async () => {
