@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { getAppInfo } from "../../features/app/api";
 import { FocusScreen } from "../../features/focus/FocusScreen";
+import { useFocusStore } from "../../features/focus/store";
 import { GoalsScreen } from "../../features/plan/GoalsScreen";
 import { PlanScreen } from "../../features/plan/PlanScreen";
 import { usePlanStore } from "../../features/plan/store";
+import { StatsScreen } from "../../features/stats/StatsScreen";
 import { Sidebar, type Screen } from "./Sidebar";
 
 export function MainWindow() {
@@ -12,6 +14,8 @@ export function MainWindow() {
   const [goalId, setGoalId] = useState<string | null>(null);
   const plan = usePlanStore((s) => s.view);
   const connectPlan = usePlanStore((s) => s.connect);
+  const today = useFocusStore((s) => s.today);
+  const connectFocus = useFocusStore((s) => s.connect);
 
   useEffect(() => {
     getAppInfo()
@@ -19,6 +23,8 @@ export function MainWindow() {
       .catch(() => setVersion(null));
   }, []);
   useEffect(() => connectPlan(), [connectPlan]);
+  // The sidebar's streak follows today's focus on every screen.
+  useEffect(() => connectFocus(), [connectFocus]);
 
   const navigate = (to: Screen, goal?: string) => {
     setScreen(to);
@@ -33,6 +39,7 @@ export function MainWindow() {
         onNavigate={navigate}
         goals={plan?.goals ?? []}
         projects={plan?.projects ?? []}
+        today={today}
       />
       <main className="flex min-w-0 flex-1 flex-col">
         {screen === "focus" && <FocusScreen onOpenPlan={() => navigate("plan")} />}
@@ -44,6 +51,7 @@ export function MainWindow() {
             onOpenPlan={() => navigate("plan")}
           />
         )}
+        {screen === "stats" && <StatsScreen />}
       </main>
     </div>
   );

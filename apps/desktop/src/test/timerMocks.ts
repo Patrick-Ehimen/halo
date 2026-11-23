@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { TimerSnapshot } from "../features/focus/api";
+import type { TimerSnapshot, TodayFocus } from "../features/focus/api";
 
 /** A running Deep 50 session, 18:24 left. */
 export const running: TimerSnapshot = {
@@ -22,6 +22,32 @@ export const running: TimerSnapshot = {
   note: "",
 };
 
+/** 3h 20m of a 5h goal, a 4-day streak. */
+export const today: TodayFocus = {
+  focusedSecs: 12_000,
+  sessions: 3,
+  focusedLabel: "3h 20m",
+  goalLabel: "of your 5h goal",
+  goalPermille: 666,
+  tree: "sapling",
+  streak: 4,
+  streakLongest: 9,
+  streakToday: true,
+};
+
+/** Nothing yet today. */
+export const emptyToday: TodayFocus = {
+  ...today,
+  focusedSecs: 0,
+  sessions: 0,
+  focusedLabel: "0m",
+  goalPermille: 0,
+  tree: "seed",
+  streak: 0,
+  streakLongest: 0,
+  streakToday: false,
+};
+
 /** Fresh mocks for the focus and app APIs. Use inside `vi.hoisted`. */
 export function makeMocks() {
   return {
@@ -34,7 +60,7 @@ export function makeMocks() {
       resume: vi.fn(),
       extend: vi.fn(),
       end: vi.fn(),
-      todayFocus: vi.fn().mockResolvedValue({ focusedSecs: 0, sessions: 0 }),
+      todayFocus: vi.fn().mockResolvedValue(emptyToday),
       settings: vi.fn().mockResolvedValue(null),
       setSettings: vi.fn(),
       logSession: vi.fn(),

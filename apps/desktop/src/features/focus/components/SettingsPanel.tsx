@@ -15,6 +15,9 @@ const CHECK_IN_OPTIONS = ["off", "10", "15", "20", "30"] as const;
 
 const PAUSE_OPTIONS = ["0", "1", "2", "3", "5", "unlimited"] as const;
 
+/** Daily goal choices in minutes; a custom saved value is kept in the list. */
+const GOAL_STEPS = [60, 90, 120, 180, 240, 300, 360, 420, 480, 600];
+
 function Toggle({
   label,
   hint,
@@ -65,6 +68,10 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const update = (patch: Partial<TimerSettings>) => onChange({ ...s, ...patch });
   const updatePrefs = (patch: Partial<Prefs>) => prefs && onPrefsChange({ ...prefs, ...patch });
+  const goalOptions =
+    prefs && !GOAL_STEPS.includes(prefs.dailyGoalMinutes)
+      ? [...GOAL_STEPS, prefs.dailyGoalMinutes].sort((a, b) => a - b)
+      : GOAL_STEPS;
   return (
     <div
       role="dialog"
@@ -137,6 +144,28 @@ export function SettingsPanel({
 
       {prefs && (
         <>
+          <h3 className="mt-4 mb-1 text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
+            Goal and reflection
+          </h3>
+          <div className="divide-y divide-hairline">
+            <Row label="Daily goal">
+              <Dropdown
+                label="Daily goal"
+                value={String(prefs.dailyGoalMinutes)}
+                options={goalOptions.map((m) => ({
+                  value: String(m),
+                  label: m % 60 === 0 ? `${m / 60} hours` : `${Math.floor(m / 60)}h ${m % 60}m`,
+                }))}
+                onChange={(v) => updatePrefs({ dailyGoalMinutes: Number(v) })}
+              />
+            </Row>
+            <Toggle
+              label="Ask how it went"
+              hint="Rate each session and add notes"
+              checked={prefs.reflect}
+              onChange={(reflect) => updatePrefs({ reflect })}
+            />
+          </div>
           <h3 className="mt-4 mb-1 text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
             Menu bar and alerts
           </h3>

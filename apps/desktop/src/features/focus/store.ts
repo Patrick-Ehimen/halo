@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { appApi, type Prefs } from "../app/api";
+import { onPlanChanged } from "../plan/api";
 import {
   subscribeTimer,
   timerApi,
@@ -71,12 +72,18 @@ export const useFocusStore = create<FocusState>((set, get) => {
         .settings()
         .then((settings) => set({ settings }))
         .catch(() => {});
-      return subscribeTimer({
+      const offTimer = subscribeTimer({
         onTick: (snapshot) => set({ snapshot }),
         onPhase: (event) => {
           if (event.type === "focusEnded") void refreshToday();
         },
       });
+      // Reflections and plan changes can move today's numbers too.
+      const offPlan = onPlanChanged(() => void refreshToday());
+      return () => {
+        offTimer();
+        offPlan();
+      };
     },
     start: (preset, intention) => run(() => timerApi.start(preset, intention)),
     selectPreset: (preset) => run(() => timerApi.selectPreset(preset)),
@@ -99,6 +106,8 @@ export const useFocusStore = create<FocusState>((set, get) => {
       set({ prefs });
       try {
         set({ prefs: await appApi.setPrefs(prefs), error: null });
+        // The goal ring and tree follow the daily goal.
+        if (prefs.dailyGoalMinutes !== previous?.dailyGoalMinutes) void refreshToday();
       } catch (e) {
         set({ prefs: previous, error: e instanceof Error ? e.message : String(e) });
       }

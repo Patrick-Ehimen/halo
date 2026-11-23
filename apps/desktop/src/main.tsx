@@ -6,6 +6,7 @@ import { MiniWindow } from "./windows/mini/MiniWindow";
 import { BreakOverlayWindow } from "./windows/overlay/BreakOverlayWindow";
 import { PaletteWindow } from "./windows/palette/PaletteWindow";
 import { PopoverWindow } from "./windows/popover/PopoverWindow";
+import { ReflectionWindow } from "./windows/reflection/ReflectionWindow";
 import "@halo/ui/styles.css";
 
 const root = document.getElementById("root");
@@ -18,6 +19,7 @@ const WINDOWS: Record<string, () => ReactElement> = {
   mini: () => <MiniWindow />,
   palette: () => <PaletteWindow />,
   "check-in": () => <CheckInWindow />,
+  reflection: () => <ReflectionWindow />,
   // One overlay window per display: break-overlay-0, break-overlay-1, …
   "break-overlay": () => <BreakOverlayWindow />,
 };

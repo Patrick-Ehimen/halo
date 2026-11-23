@@ -1,43 +1,56 @@
 import type { TodayFocus } from "../api";
-import { formatHoursMinutes } from "../format";
+import { Tree } from "../../stats/components/Tree";
 
 const card = "rounded-card border border-card-border bg-card p-4";
 
 export function TodayCard({ today, onLog }: { today: TodayFocus | null; onLog: () => void }) {
-  const secs = today?.focusedSecs ?? 0;
   const sessions = today?.sessions ?? 0;
+  // Ring geometry: r = 22, so the circumference is 2πr. Progress comes from Rust.
+  const circumference = 2 * Math.PI * 22;
+  const progress = Math.min(1, (today?.goalPermille ?? 0) / 1000);
   return (
     <section aria-label="Today" className={`${card} p-[18px]`}>
       <div className="flex items-center gap-4">
-        <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true">
-          <circle
-            cx="32"
-            cy="32"
-            r="22"
-            fill="none"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth="6"
-          />
-          <circle
-            cx="32"
-            cy="32"
-            r="22"
-            fill="none"
-            stroke="var(--halo-focus)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray="118 20.23"
-            transform="rotate(-50 32 32)"
-            opacity={sessions > 0 ? 1 : 0.35}
-          />
-        </svg>
-        <div>
+        <div className="relative size-16 shrink-0">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 64 64"
+            role="img"
+            aria-label={`Daily goal ${Math.round(progress * 100)}% done`}
+          >
+            <circle
+              cx="32"
+              cy="32"
+              r="22"
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="5"
+            />
+            <circle
+              cx="32"
+              cy="32"
+              r="22"
+              fill="none"
+              stroke="var(--halo-focus)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={`${progress * circumference} ${circumference}`}
+              transform="rotate(-90 32 32)"
+              opacity={progress > 0 ? 1 : 0}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Tree stage={today?.tree ?? "seed"} size={34} />
+          </span>
+        </div>
+        <div className="min-w-0">
           <p className="text-[28px] leading-tight font-semibold tabular-nums">
-            {formatHoursMinutes(secs)}
+            {today?.focusedLabel ?? "0m"}
           </p>
-          <p className="text-[13px] text-text-secondary">focused today</p>
+          <p className="text-[13px] text-text-secondary">{today?.goalLabel ?? "focused today"}</p>
           <p className="text-xs text-text-muted tabular-nums">
-            {sessions} {sessions === 1 ? "session" : "sessions"} saved
+            {sessions} {sessions === 1 ? "session" : "sessions"} today
           </p>
         </div>
       </div>

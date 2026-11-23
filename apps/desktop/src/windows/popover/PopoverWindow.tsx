@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { appApi } from "../../features/app/api";
 import { SmallRing } from "../../features/focus/components/SmallRing";
-import { PRESETS, describe, formatHoursMinutes } from "../../features/focus/format";
+import { PRESETS, describe } from "../../features/focus/format";
 import { useFocusStore } from "../../features/focus/store";
 
 function Chip({
@@ -212,7 +212,7 @@ export function PopoverWindow() {
         >
           <span className="text-[13px] text-text-secondary">Today</span>
           <span className="text-[13px] font-medium tabular-nums">
-            {formatHoursMinutes(today?.focusedSecs ?? 0)} · {today?.sessions ?? 0}{" "}
+            {today?.focusedLabel ?? "0m"} · {today?.sessions ?? 0}{" "}
             {today?.sessions === 1 ? "session" : "sessions"}
           </span>
         </section>

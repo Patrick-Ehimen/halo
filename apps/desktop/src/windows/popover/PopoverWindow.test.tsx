@@ -43,7 +43,17 @@ const mocks = vi.hoisted(() => ({
     resume: vi.fn(),
     extend: vi.fn(),
     end: vi.fn(),
-    todayFocus: vi.fn().mockResolvedValue({ focusedSecs: 0, sessions: 0 }),
+    todayFocus: vi.fn().mockResolvedValue({
+      focusedSecs: 0,
+      sessions: 0,
+      focusedLabel: "0m",
+      goalLabel: "of your 5h goal",
+      goalPermille: 0,
+      tree: "seed",
+      streak: 0,
+      streakLongest: 0,
+      streakToday: false,
+    }),
     settings: vi.fn().mockResolvedValue(null),
     setSettings: vi.fn(),
     logSession: vi.fn(),
@@ -78,7 +88,17 @@ describe("PopoverWindow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useFocusStore.setState({ snapshot: null, today: null, settings: null, error: null });
-    mocks.timerApi.todayFocus.mockResolvedValue({ focusedSecs: 12_000, sessions: 3 });
+    mocks.timerApi.todayFocus.mockResolvedValue({
+      focusedSecs: 12_000,
+      sessions: 3,
+      focusedLabel: "3h 20m",
+      goalLabel: "of your 5h goal",
+      goalPermille: 666,
+      tree: "sapling",
+      streak: 4,
+      streakLongest: 9,
+      streakToday: true,
+    });
     mocks.timerApi.settings.mockResolvedValue(null);
     mocks.appApi.miniVisible.mockResolvedValue(false);
     mocks.appApi.setMiniVisible.mockResolvedValue(undefined);

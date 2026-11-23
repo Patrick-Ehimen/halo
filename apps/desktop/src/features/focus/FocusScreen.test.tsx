@@ -77,7 +77,17 @@ describe("FocusScreen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useFocusStore.setState({ snapshot: null, today: null, settings: null, error: null });
-    api.timerApi.todayFocus.mockResolvedValue({ focusedSecs: 12_000, sessions: 3 });
+    api.timerApi.todayFocus.mockResolvedValue({
+      focusedSecs: 12_000,
+      sessions: 3,
+      focusedLabel: "3h 20m",
+      goalLabel: "of your 5h goal",
+      goalPermille: 666,
+      tree: "sapling",
+      streak: 4,
+      streakLongest: 9,
+      streakToday: true,
+    });
     api.timerApi.settings.mockResolvedValue(settings);
   });
 

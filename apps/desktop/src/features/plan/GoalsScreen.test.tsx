@@ -23,7 +23,17 @@ const mocks = vi.hoisted(() => ({
   },
   timerApi: {
     state: vi.fn(),
-    todayFocus: vi.fn().mockResolvedValue({ focusedSecs: 0, sessions: 0 }),
+    todayFocus: vi.fn().mockResolvedValue({
+      focusedSecs: 0,
+      sessions: 0,
+      focusedLabel: "0m",
+      goalLabel: "of your 5h goal",
+      goalPermille: 0,
+      tree: "seed",
+      streak: 0,
+      streakLongest: 0,
+      streakToday: false,
+    }),
     settings: vi.fn().mockResolvedValue(null),
   },
 }));

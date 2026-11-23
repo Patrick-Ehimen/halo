@@ -1,9 +1,10 @@
 import { HaloMark } from "@halo/ui";
 import type { ReactNode } from "react";
+import type { TodayFocus } from "../../features/focus/api";
 import type { GoalView, ProjectView } from "../../features/plan/api";
 import { Dot, GoalRing } from "../../features/plan/components/ui";
 
-export type Screen = "focus" | "plan" | "goals";
+export type Screen = "focus" | "plan" | "goals" | "stats";
 
 type Item = { label: string; screen?: Screen; icon: (color: string) => ReactNode };
 
@@ -52,6 +53,7 @@ const ITEMS: Item[] = [
   },
   {
     label: "Stats",
+    screen: "stats",
     icon: (c) => (
       <svg {...stroke(c)}>
         <path d="M4 20V4M4 20h16M9 16v-5M14 16V8M19 16v-3" />
@@ -82,9 +84,10 @@ type SidebarProps = {
   onNavigate: (screen: Screen, goalId?: string) => void;
   goals: GoalView[];
   projects: ProjectView[];
+  today: TodayFocus | null;
 };
 
-export function Sidebar({ version, screen, onNavigate, goals, projects }: SidebarProps) {
+export function Sidebar({ version, screen, onNavigate, goals, projects, today }: SidebarProps) {
   const active = goals.filter((g) => g.status === "active");
   const loose = projects.filter((p) => !p.goalId);
   return (
@@ -184,9 +187,40 @@ export function Sidebar({ version, screen, onNavigate, goals, projects }: Sideba
         </div>
       )}
 
-      <p className="mt-auto px-2.5 pt-4 text-[11px] text-text-muted tabular-nums">
-        {version ? `v${version}` : ""}
-      </p>
+      <div className="mt-auto flex flex-col gap-3 pt-4">
+        {today && (
+          <button
+            type="button"
+            onClick={() => onNavigate("stats")}
+            className="flex flex-col gap-1 rounded-xl border border-focus/20 bg-focus/8 p-3 text-left hover:bg-focus/12"
+          >
+            <span className="flex items-center gap-2 text-[13px] font-semibold tabular-nums">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--halo-focus)"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" />
+              </svg>
+              {today.streak === 0 ? "No streak yet" : `${today.streak}-day streak`}
+            </span>
+            <span className="text-xs text-text-secondary tabular-nums">
+              {today.streak > 0 && !today.streakToday
+                ? "Focus today to keep it"
+                : `Best: ${today.streakLongest} ${today.streakLongest === 1 ? "day" : "days"}`}
+            </span>
+          </button>
+        )}
+        <p className="px-2.5 text-[11px] text-text-muted tabular-nums">
+          {version ? `v${version}` : ""}
+        </p>
+      </div>
     </nav>
   );
 }
