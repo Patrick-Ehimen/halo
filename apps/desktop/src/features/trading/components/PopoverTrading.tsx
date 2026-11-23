@@ -22,7 +22,7 @@ export function PopoverTrading() {
         className="rounded-card border border-card-border bg-card p-3.5"
       >
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium text-text-secondary">{view.headline}</span>
+          <span className="font-semibold text-shield">{view.headline}</span>
           <span className="text-text-muted tabular-nums">
             {view.zoneLabel} {view.nowLabel}
           </span>
@@ -75,7 +75,7 @@ export function PopoverTrading() {
         className="rounded-card border border-card-border bg-card p-3.5"
       >
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium">Pre-trade checklist</span>
+          <span className="font-semibold text-shield">Pre-trade checklist</span>
           <span className="text-text-secondary tabular-nums">
             {view.checklistDone} of {total}
           </span>
@@ -108,7 +108,7 @@ export function PopoverTrading() {
         className="rounded-card border border-card-border bg-card p-3.5"
       >
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium">Head check</span>
+          <span className="font-semibold text-focus">Head check</span>
           <span className="text-text-secondary">
             {logged
               ? logged.lockedToday
@@ -159,7 +159,9 @@ export function PopoverTrading() {
         className="flex items-center justify-between rounded-card border border-card-border bg-card px-3.5 py-3"
       >
         <span className="flex flex-col">
-          <span className="text-[13px]">Charts outside your window today</span>
+          <span className="text-[13px] font-semibold text-[#FF9A8D]">
+            Charts outside your window today
+          </span>
           <span className="text-xs text-text-muted">{view.gate.label}</span>
         </span>
         <span className="text-[15px] font-semibold text-alert tabular-nums">

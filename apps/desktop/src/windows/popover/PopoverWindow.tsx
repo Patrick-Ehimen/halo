@@ -109,7 +109,9 @@ export function PopoverWindow() {
               aria-selected={tab === id}
               onClick={() => setTab(id)}
               className={`h-9 flex-1 rounded-lg text-[13px] font-medium ${
-                tab === id ? "bg-control-selected text-text" : "text-text-secondary hover:text-text"
+                tab === id
+                  ? `bg-control-selected ${id === "focus" ? "text-focus" : "text-shield"}`
+                  : "text-text-secondary hover:text-text"
               }`}
             >
               {label}
@@ -123,7 +125,7 @@ export function PopoverWindow() {
           <>
             <section
               aria-label="Current session"
-              className="rounded-card border border-card-border bg-card p-3.5"
+              className={`rounded-card border p-3.5 ${view?.accent === "break" ? "border-break/25 bg-break/8" : "border-focus/25 bg-[linear-gradient(135deg,rgba(242,181,68,0.14),rgba(242,181,68,0.04))]"}`}
             >
               {snapshot && view ? (
                 <>
@@ -135,7 +137,9 @@ export function PopoverWindow() {
                       accent={view.accent}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-text-secondary">
+                      <p
+                        className={`text-xs font-semibold tracking-[0.04em] uppercase ${view.accent === "break" ? "text-break" : "text-focus"}`}
+                      >
                         {idle && !isBreak ? "Ready" : view.label}
                       </p>
                       <p
@@ -203,14 +207,19 @@ export function PopoverWindow() {
 
             {idle && (
               <section aria-label="Quick start">
-                <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
+                <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-focus uppercase">
                   Quick start
                 </p>
                 <div className="flex gap-2">
                   {PRESETS.map((p) => (
-                    <Chip key={p.id} onClick={() => void actions.start(p.id, "")}>
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => void actions.start(p.id, "")}
+                      className="h-11 flex-1 rounded-control border border-focus/30 bg-focus/10 px-2 text-[13px] font-medium text-[#FFE2A6] transition-colors hover:bg-focus/18"
+                    >
                       {p.label}
-                    </Chip>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -220,8 +229,11 @@ export function PopoverWindow() {
               aria-label="Today"
               className="flex items-center justify-between rounded-card border border-card-border bg-card px-3.5 py-3"
             >
-              <span className="text-[13px] text-text-secondary">Today</span>
-              <span className="text-[13px] font-medium tabular-nums">
+              <span className="flex items-center gap-2 text-[13px] text-text-secondary">
+                <span className="size-2 rounded-full bg-focus" aria-hidden="true" />
+                Today
+              </span>
+              <span className="text-[13px] font-semibold text-focus tabular-nums">
                 {today?.focusedLabel ?? "0m"} · {today?.sessions ?? 0}{" "}
                 {today?.sessions === 1 ? "session" : "sessions"}
               </span>

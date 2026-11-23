@@ -46,7 +46,7 @@ export function Checklist({ view }: { view: TradingView }) {
           />
         </svg>
         <div className="flex flex-1 flex-col gap-0.5">
-          <h2 className="text-[13px] font-semibold">Pre-trade checklist</h2>
+          <h2 className="text-[13px] font-semibold text-shield">Pre-trade checklist</h2>
           <span className="text-xs text-text-secondary">{view.checklistSummary}</span>
         </div>
         <button

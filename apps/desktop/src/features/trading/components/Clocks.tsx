@@ -11,7 +11,7 @@ export function Clocks({ view }: { view: TradingView }) {
       className="flex flex-col gap-4 rounded-2xl border border-card-border bg-white/4 px-5 py-[18px]"
     >
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2.5">
-        <h2 className="text-[13px] font-semibold">Session clocks</h2>
+        <h2 className="text-[13px] font-semibold text-shield">Session clocks</h2>
         <span className="text-xl font-medium tracking-[-0.01em]">{view.headline}</span>
         {view.headlineTime && (
           <span role="timer" className="text-xl font-light text-shield tabular-nums">

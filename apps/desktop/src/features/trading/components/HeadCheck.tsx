@@ -52,7 +52,7 @@ export function HeadCheck({
       className="flex min-w-0 flex-[1_1_300px] flex-col gap-3.5 rounded-2xl border border-card-border bg-card px-[18px] py-4"
     >
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-[13px] font-semibold">Head check</h2>
+        <h2 className="text-[13px] font-semibold text-focus">Head check</h2>
         <span className="text-xs text-text-secondary">
           {logged ? logged.atLabel : "How clear is your head right now?"}
         </span>
