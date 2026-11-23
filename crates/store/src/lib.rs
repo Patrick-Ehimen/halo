@@ -15,6 +15,7 @@ pub mod sessions;
 pub mod settings;
 pub mod tasks;
 pub mod time_blocks;
+pub mod trading;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -30,6 +31,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0001_sessions_settings.sql"),
     include_str!("../migrations/0002_check_ins.sql"),
     include_str!("../migrations/0003_planning.sql"),
+    include_str!("../migrations/0004_trading.sql"),
 ];
 
 pub fn open(path: &Path) -> Result<Connection> {
