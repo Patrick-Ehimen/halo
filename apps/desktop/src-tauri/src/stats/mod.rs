@@ -715,6 +715,7 @@ mod tests {
                 name: "meridian-rs",
                 color: "#F2B544",
                 goal_id: None,
+                description: "",
             },
             1,
         )

@@ -1,3 +1,4 @@
+import { ConfirmDialog, DatePicker } from "@halo/ui";
 import { useEffect, useState } from "react";
 import { presetOf } from "../focus/format";
 import { useFocusStore } from "../focus/store";
@@ -28,6 +29,11 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
   const [goalDialog, setGoalDialog] = useState<"new" | GoalView | null>(null);
   const [projectDialog, setProjectDialog] = useState<"new" | ProjectView | null>(null);
   const [milestone, setMilestone] = useState({ title: "", dueOn: "" });
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    action: () => Promise<unknown>;
+  } | null>(null);
 
   useEffect(() => connect(), [connect]);
   useEffect(() => connectTimer(), [connectTimer]);
@@ -49,6 +55,19 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
     : [];
   const canStart = timer?.status === "idle" && timer.phase === "focus";
   const doneMilestones = goal?.milestones.filter((x) => x.done).length ?? 0;
+  const askDeleteGoal = (g: GoalView) =>
+    setConfirm({
+      title: `Delete “${g.title}”?`,
+      message:
+        "Its milestones go with it. Its projects, tasks and past sessions stay, without a goal.",
+      action: () => planApi.deleteGoal(g.id),
+    });
+  const askDeleteProject = (p: ProjectView) =>
+    setConfirm({
+      title: `Delete “${p.name}”?`,
+      message: "Its tasks and past sessions stay, without a project.",
+      action: () => planApi.deleteProject(p.id),
+    });
   const closeDialogs = () => {
     setGoalDialog(null);
     setProjectDialog(null);
@@ -80,7 +99,7 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
               aria-pressed={tab === t}
               onClick={() => setTab(t)}
               className={`h-9 rounded-lg px-3.5 text-[13px] font-medium ${
-                tab === t ? "bg-control-selected text-text" : "text-text-secondary hover:text-text"
+                tab === t ? "bg-control-selected text-focus" : "text-text-secondary hover:text-text"
               }`}
             >
               {t === "active" ? "Active" : "Done"}
@@ -129,7 +148,9 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                     label={`${g.percent}%`}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold">{g.title}</span>
+                    <span className="block text-[15px] font-semibold" style={{ color: g.color }}>
+                      {g.title}
+                    </span>
                     {g.why && (
                       <span className="block truncate text-xs text-text-secondary">{g.why}</span>
                     )}
@@ -192,7 +213,12 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                 <p className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
                   Goal{goal.dueLabel ? ` · by ${goal.dueLabel}` : ""}
                 </p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em]">{goal.title}</h2>
+                <h2
+                  className="mt-1 text-2xl font-semibold tracking-[-0.02em]"
+                  style={{ color: goal.color }}
+                >
+                  {goal.title}
+                </h2>
                 {goal.why && <p className="text-sm text-text-secondary">{goal.why}</p>}
               </div>
               <button
@@ -209,9 +235,17 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
               >
                 Edit
               </button>
+              <button
+                type="button"
+                onClick={() => askDeleteGoal(goal)}
+                className="h-11 rounded-control border border-alert/30 bg-alert/8 px-3.5 text-[13px] font-medium text-alert hover:bg-alert/15"
+              >
+                Delete
+              </button>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            {/* Progress and pace side by side, the deadline under them. */}
+            <div className="grid grid-cols-2 gap-3">
               {[
                 [
                   "Progress",
@@ -233,7 +267,9 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
               ].map(([label, value, sub]) => (
                 <div
                   key={label}
-                  className="min-w-[150px] flex-1 rounded-card border border-card-border bg-card p-3.5"
+                  className={`min-w-0 rounded-card border border-card-border bg-card p-3.5 ${
+                    label === "Deadline" ? "col-span-2" : ""
+                  }`}
                 >
                   <p className="text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
                     {label}
@@ -246,8 +282,8 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4">
-              <div className="min-w-[280px] flex-1 rounded-card border border-card-border bg-card p-4">
+            <div className="flex flex-col gap-4">
+              <div className="rounded-card border border-card-border bg-card p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Milestones</h3>
                   <span className="text-xs text-text-muted">
@@ -304,7 +340,13 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                       <button
                         type="button"
                         aria-label={`Delete ${ms.title}`}
-                        onClick={() => void run(() => planApi.deleteMilestone(ms.id))}
+                        onClick={() =>
+                          setConfirm({
+                            title: `Delete “${ms.title}”?`,
+                            message: "Tasks linked to it stay, without the milestone.",
+                            action: () => planApi.deleteMilestone(ms.id),
+                          })
+                        }
                         className="flex size-9 items-center justify-center rounded-full text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/8 hover:text-text focus-visible:opacity-100"
                       >
                         <svg
@@ -338,12 +380,10 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                     placeholder="Add a milestone"
                     className={`${fieldClass} col-span-2`}
                   />
-                  <input
-                    aria-label="Milestone due date"
-                    type="date"
+                  <DatePicker
+                    label="Milestone due date"
                     value={milestone.dueOn}
-                    onChange={(e) => setMilestone({ ...milestone, dueOn: e.target.value })}
-                    className={fieldClass}
+                    onChange={(dueOn) => setMilestone({ ...milestone, dueOn })}
                   />
                   <button
                     type="submit"
@@ -355,7 +395,7 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                 </form>
               </div>
 
-              <div className="min-w-[280px] flex-1 rounded-card border border-focus/22 bg-focus/7 p-4">
+              <div className="rounded-card border border-focus/22 bg-focus/7 p-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Today for this goal</h3>
                   <span className="rounded-full bg-focus/12 px-2.5 py-[3px] text-xs font-medium text-focus">
@@ -433,8 +473,13 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                   className="flex w-full items-center gap-3 border-t border-hairline py-2.5 text-left"
                 >
                   <Dot color={p.color} size={8} />
-                  <span className="w-[160px]">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-medium">{p.name}</span>
+                    {p.description && (
+                      <span className="block truncate text-xs text-text-secondary">
+                        {p.description}
+                      </span>
+                    )}
                     <span className="block text-xs text-text-muted">
                       {p.openTasks} open {p.openTasks === 1 ? "task" : "tasks"}
                     </span>
@@ -473,6 +518,7 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
       {goalDialog && (
         <GoalDialog
           goal={goalDialog === "new" ? undefined : goalDialog}
+          usedColors={view.goals.map((g) => g.color)}
           error={error}
           onClose={closeDialogs}
           onSave={(form) =>
@@ -481,14 +527,7 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
               else await planApi.updateGoal(goalDialog.id, form);
             }).then((ok) => ok && setGoalDialog(null))
           }
-          onDelete={
-            goalDialog === "new"
-              ? undefined
-              : () =>
-                  void run(() => planApi.deleteGoal(goalDialog.id)).then(
-                    (ok) => ok && setGoalDialog(null),
-                  )
-          }
+          onDelete={goalDialog === "new" ? undefined : () => askDeleteGoal(goalDialog)}
         />
       )}
       {projectDialog && (
@@ -496,6 +535,7 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
           project={projectDialog === "new" ? undefined : projectDialog}
           goals={view.goals}
           defaultGoalId={goal?.id ?? null}
+          usedColors={[...view.goals.map((g) => g.color), ...view.projects.map((p) => p.color)]}
           error={error}
           onClose={closeDialogs}
           onSave={(form) =>
@@ -505,13 +545,23 @@ export function GoalsScreen({ selectedId, onSelect, onOpenPlan }: GoalsScreenPro
                 : planApi.updateProject(projectDialog.id, form),
             ).then((ok) => ok && setProjectDialog(null))
           }
-          onArchive={
-            projectDialog === "new"
-              ? undefined
-              : () =>
-                  void run(() => planApi.archiveProject(projectDialog.id)).then(
-                    (ok) => ok && setProjectDialog(null),
-                  )
+          onDelete={projectDialog === "new" ? undefined : () => askDeleteProject(projectDialog)}
+        />
+      )}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Delete"
+          onCancel={() => setConfirm(null)}
+          onConfirm={() =>
+            void run(confirm.action).then((ok) => {
+              setConfirm(null);
+              if (ok) {
+                setGoalDialog(null);
+                setProjectDialog(null);
+              }
+            })
           }
         />
       )}

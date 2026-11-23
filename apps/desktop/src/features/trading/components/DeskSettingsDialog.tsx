@@ -119,7 +119,7 @@ export function DeskSettingsDialog({
                   onClick={() => save({ market: m.id })}
                   className={`h-9 rounded-lg px-3 text-[13px] font-medium ${
                     settings.market === m.id
-                      ? "bg-white/12 text-text"
+                      ? "bg-white/12 text-shield"
                       : "text-text-secondary hover:text-text"
                   }`}
                 >

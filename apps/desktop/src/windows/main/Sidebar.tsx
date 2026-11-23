@@ -151,7 +151,9 @@ export function Sidebar({ version, screen, onNavigate, goals, projects, today }:
             className="flex min-h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium text-text hover:bg-white/4"
           >
             <GoalRing size={16} stroke={2.6} percent={g.percent} color={g.color} />
-            <span className="truncate">{g.title}</span>
+            <span className="truncate" style={{ color: g.color }}>
+              {g.title}
+            </span>
           </button>
           {projects
             .filter((p) => p.goalId === g.id)

@@ -11,6 +11,7 @@ pub enum PaceView {
     Ahead,
     OnPace,
     Behind,
+    JustStarted,
     Overdue,
     NoDeadline,
 }
@@ -22,6 +23,7 @@ impl From<halo_plan::Pace> for PaceView {
             halo_plan::Pace::Ahead => PaceView::Ahead,
             halo_plan::Pace::OnPace => PaceView::OnPace,
             halo_plan::Pace::Behind => PaceView::Behind,
+            halo_plan::Pace::JustStarted => PaceView::JustStarted,
             halo_plan::Pace::Overdue => PaceView::Overdue,
             halo_plan::Pace::NoDeadline => PaceView::NoDeadline,
         }
@@ -78,6 +80,7 @@ pub struct ProjectView {
     pub goal_id: Option<String>,
     pub name: String,
     pub color: String,
+    pub description: String,
     pub open_tasks: u32,
     /// Estimated sessions left on its open tasks.
     pub sessions_left: u32,
@@ -98,8 +101,12 @@ pub struct TaskView {
     pub due_minute: Option<u32>,
     /// Local time it's due, `HH:MM`, whatever the day (for editing).
     pub due_time: Option<String>,
-    /// Where it ends on the timeline: a 25-minute session per estimated one.
+    /// Where it ends on the timeline: its end time, else a 25-minute session
+    /// per estimated one.
     pub due_end_minute: Option<u32>,
+    /// Local `HH:MM` it ends, when set (for editing).
+    pub end_time: Option<String>,
+    pub description: String,
     /// "10:00", "Tomorrow 10:00", "Fri".
     pub when_label: Option<String>,
     pub recurrence: Option<String>,
@@ -122,6 +129,9 @@ pub struct BlockView {
     pub end_minute: u32,
     /// "09:30–11:30".
     pub label: String,
+    /// Local `HH:MM` it starts, and its length, for editing.
+    pub start_time: String,
+    pub minutes: u32,
 }
 
 /// Everything the Today plan and Goals screens draw.
@@ -158,6 +168,9 @@ pub struct ProjectForm {
     pub name: String,
     pub color: String,
     pub goal_id: Option<String>,
+    /// What the project is about. Optional.
+    #[serde(default)]
+    pub description: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -171,7 +184,13 @@ pub struct TaskForm {
     pub planned_on: Option<String>,
     /// Local `HH:MM` on `planned_on`.
     pub due_time: Option<String>,
+    /// Local `HH:MM` it ends, after `due_time`. Optional.
+    #[serde(default)]
+    pub end_time: Option<String>,
     pub recurrence: Option<String>,
+    /// What the task involves. Optional.
+    #[serde(default)]
+    pub description: String,
 }
 
 /// What quick add understood, for the chips shown while typing.

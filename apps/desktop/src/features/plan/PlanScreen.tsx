@@ -1,7 +1,8 @@
+import { ConfirmDialog } from "@halo/ui";
 import { useEffect, useState } from "react";
 import { useFocusStore } from "../focus/store";
 import { presetOf } from "../focus/format";
-import { planApi, type TaskForm, type TaskView } from "./api";
+import { planApi, type BlockView, type TaskForm, type TaskView } from "./api";
 import { ScheduleDialog, TaskDialog } from "./components/dialogs";
 import { QuickAdd } from "./components/QuickAdd";
 import { TaskRow } from "./components/TaskRow";
@@ -18,7 +19,19 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
   const timer = useFocusStore((s) => s.snapshot);
   const connectTimer = useFocusStore((s) => s.connect);
   const [editing, setEditing] = useState<(TaskForm & { id?: string }) | null>(null);
-  const [scheduling, setScheduling] = useState<TaskView | null>(null);
+  /** The task being put on the timeline, and its block when it already has one. */
+  const [scheduling, setScheduling] = useState<{
+    title: string;
+    taskId: string | null;
+    dueTime: string | null;
+    block?: BlockView;
+  } | null>(null);
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    action: () => Promise<unknown>;
+    then?: () => void;
+  } | null>(null);
 
   useEffect(() => connect(), [connect]);
   useEffect(() => connectTimer(), [connectTimer]);
@@ -53,6 +66,25 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
     const ok = await run(() => (id ? planApi.updateTask(id, form) : planApi.createTask(form)));
     if (ok) setEditing(null);
   };
+  // One block per task: scheduling a task that has one edits it.
+  const schedule = (t: TaskView) =>
+    setScheduling({
+      title: t.title,
+      taskId: t.id,
+      dueTime: t.dueTime,
+      block: view.blocks.find((b) => b.taskId === t.id),
+    });
+  const editBlock = (id: string) => {
+    const block = view.blocks.find((b) => b.id === id);
+    if (block) setScheduling({ title: block.title, taskId: block.taskId, dueTime: null, block });
+  };
+  const askDeleteBlock = (block: BlockView) =>
+    setConfirm({
+      title: `Delete the ${block.label} block?`,
+      message: `“${block.title}” comes off today’s timeline. The task itself stays.`,
+      action: () => planApi.deleteBlock(block.id),
+      then: () => setScheduling(null),
+    });
   const start = (t: TaskView) =>
     void run(() => planApi.startTask(t.id, timer ? presetOf(timer) : "pomodoro"));
 
@@ -80,7 +112,9 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
               estimateSessions: 1,
               plannedOn: view.date,
               dueTime: null,
+              endTime: null,
               recurrence: null,
+              description: "",
             })
           }
           className="h-11 rounded-control border border-white/10 bg-control px-4 text-[13px] font-medium text-text hover:bg-white/9"
@@ -198,7 +232,7 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
                     }
                     onStart={start}
                     onEdit={(x) => setEditing(formOf(x))}
-                    onSchedule={setScheduling}
+                    onSchedule={schedule}
                   />
                 ))}
               </div>
@@ -214,7 +248,15 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
                 const t = taskId ? m.allTasks.get(taskId) : undefined;
                 return t ? m.colorOf(t) : null;
               }}
-              onDeleteBlock={(id) => void run(() => planApi.deleteBlock(id))}
+              onEditBlock={editBlock}
+              onEditTask={(id) => {
+                const t = m.allTasks.get(id);
+                if (t) setEditing(formOf(t));
+              }}
+              onDeleteBlock={(id) => {
+                const block = view.blocks.find((b) => b.id === id);
+                if (block) askDeleteBlock(block);
+              }}
             />
           </div>
         </div>
@@ -234,29 +276,59 @@ export function PlanScreen({ onOpenGoals }: PlanScreenProps) {
           onSave={(form) => void save(form, editing.id)}
           onDelete={
             editing.id
-              ? () =>
-                  void run(() => planApi.deleteTask(editing.id ?? "")).then(
-                    (ok) => ok && setEditing(null),
-                  )
+              ? () => {
+                  const id = editing.id ?? "";
+                  setConfirm({
+                    title: `Delete “${editing.title || "this task"}”?`,
+                    message:
+                      "Its subtasks and time blocks go with it. Sessions you've done stay in your stats.",
+                    action: () => planApi.deleteTask(id),
+                    then: () => setEditing(null),
+                  });
+                }
               : undefined
           }
         />
       )}
       {scheduling && (
         <ScheduleDialog
+          // A new key per block, so its own time fills the form.
+          key={scheduling.block?.id ?? "new"}
           title={scheduling.title}
-          defaultStart={scheduling.dueTime ?? "09:00"}
-          defaultMinutes={50}
+          editing={!!scheduling.block}
+          defaultStart={scheduling.block?.startTime ?? scheduling.dueTime ?? "09:00"}
+          defaultMinutes={scheduling.block?.minutes ?? 50}
           error={error}
           onClose={() => {
             setScheduling(null);
             clearError();
           }}
-          onSave={(start, minutes) =>
+          onSave={(start, minutes) => {
+            const { block, taskId, title } = scheduling;
             void run(() =>
-              planApi.createBlock(scheduling.id, scheduling.title, start, minutes),
-            ).then((ok) => ok && setScheduling(null))
+              block
+                ? planApi.moveBlock(block.id, start, minutes)
+                : planApi.createBlock(taskId, title, start, minutes),
+            ).then((ok) => ok && setScheduling(null));
+          }}
+          onDelete={
+            scheduling.block
+              ? () => scheduling.block && askDeleteBlock(scheduling.block)
+              : undefined
           }
+        />
+      )}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel="Delete"
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => {
+            const { action, then } = confirm;
+            setConfirm(null);
+            void run(action).then((ok) => ok && then?.());
+          }}
         />
       )}
     </>

@@ -26,6 +26,8 @@ pub struct Goal {
     pub color: String,
     /// `active` or `done`.
     pub status: String,
+    /// Unix ms it was set.
+    pub created_at: i64,
 }
 
 /// Sessions counted toward a goal.
@@ -134,7 +136,8 @@ pub fn done_times(conn: &Connection) -> Result<Vec<i64>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
-const SELECT: &str = "SELECT id, title, why, target_sessions, due_on, color, status FROM goals";
+const SELECT: &str =
+    "SELECT id, title, why, target_sessions, due_on, color, status, created_at FROM goals";
 
 fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {
     Ok(Goal {
@@ -145,6 +148,7 @@ fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {
         due_on: r.get(4)?,
         color: r.get(5)?,
         status: r.get(6)?,
+        created_at: r.get(7)?,
     })
 }
 
@@ -210,6 +214,7 @@ mod tests {
                 name: "p",
                 color: "#fff",
                 goal_id: Some(&g),
+                description: "",
             },
             1,
         )
@@ -234,6 +239,7 @@ mod tests {
                 name: "p",
                 color: "#fff",
                 goal_id: Some(&g),
+                description: "",
             },
             1,
         )
@@ -244,6 +250,7 @@ mod tests {
                 name: "q",
                 color: "#fff",
                 goal_id: None,
+                description: "",
             },
             1,
         )

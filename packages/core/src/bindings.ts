@@ -43,7 +43,7 @@ export const commands = {
 	milestoneDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("milestone_delete", { id }, options)),
 	projectCreate: (form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("project_create", { form }, options)),
 	projectUpdate: (id: string, form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_update", { id, form }, options)),
-	projectArchive: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_archive", { id }, options)),
+	projectDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_delete", { id }, options)),
 	taskCreate: (form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("task_create", { form }, options)),
 	taskUpdate: (id: string, form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_update", { id, form }, options)),
 	/**  Finishes a task; a repeating one comes back on its next day. */
@@ -139,6 +139,9 @@ export type BlockView_Deserialize = {
 	endMinute: number,
 	/**  "09:30–11:30". */
 	label: string,
+	/**  Local `HH:MM` it starts, and its length, for editing. */
+	startTime: string,
+	minutes: number,
 };
 
 export type BlockView_Serialize = {
@@ -151,6 +154,9 @@ export type BlockView_Serialize = {
 	endMinute: number,
 	/**  "09:30–11:30". */
 	label: string,
+	/**  Local `HH:MM` it starts, and its length, for editing. */
+	startTime: string,
+	minutes: number,
 };
 
 export type ChartDay = {
@@ -418,7 +424,7 @@ export type MilestoneView_Serialize = {
 	done: boolean,
 };
 
-export type PaceView = "done" | "ahead" | "onPace" | "behind" | "overdue" | "noDeadline";
+export type PaceView = "done" | "ahead" | "onPace" | "behind" | "justStarted" | "overdue" | "noDeadline";
 
 /**  Emitted after anything in the plan changes, so every window refreshes. */
 export type PlanChanged = null;
@@ -498,12 +504,16 @@ export type ProjectForm_Deserialize = {
 	name: string,
 	color: string,
 	goalId?: string | null,
+	/**  What the project is about. Optional. */
+	description?: string,
 };
 
 export type ProjectForm_Serialize = {
 	name: string,
 	color: string,
 	goalId: string | null,
+	/**  What the project is about. Optional. */
+	description: string,
 };
 
 export type ProjectTime = {
@@ -522,6 +532,7 @@ export type ProjectView_Deserialize = {
 	goalId?: string | null,
 	name: string,
 	color: string,
+	description: string,
 	openTasks: number,
 	/**  Estimated sessions left on its open tasks. */
 	sessionsLeft: number,
@@ -532,6 +543,7 @@ export type ProjectView_Serialize = {
 	goalId: string | null,
 	name: string,
 	color: string,
+	description: string,
 	openTasks: number,
 	/**  Estimated sessions left on its open tasks. */
 	sessionsLeft: number,
@@ -672,7 +684,11 @@ export type TaskForm_Deserialize = {
 	plannedOn?: string | null,
 	/**  Local `HH:MM` on `planned_on`. */
 	dueTime?: string | null,
+	/**  Local `HH:MM` it ends, after `due_time`. Optional. */
+	endTime?: string | null,
 	recurrence?: string | null,
+	/**  What the task involves. Optional. */
+	description?: string,
 };
 
 export type TaskForm_Serialize = {
@@ -684,7 +700,11 @@ export type TaskForm_Serialize = {
 	plannedOn: string | null,
 	/**  Local `HH:MM` on `planned_on`. */
 	dueTime: string | null,
+	/**  Local `HH:MM` it ends, after `due_time`. Optional. */
+	endTime: string | null,
 	recurrence: string | null,
+	/**  What the task involves. Optional. */
+	description: string,
 };
 
 export type TaskView = TaskView_Serialize | TaskView_Deserialize;
@@ -702,8 +722,14 @@ export type TaskView_Deserialize = {
 	dueMinute?: number | null,
 	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
 	dueTime?: string | null,
-	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	/**
+	 *  Where it ends on the timeline: its end time, else a 25-minute session
+	 *  per estimated one.
+	 */
 	dueEndMinute?: number | null,
+	/**  Local `HH:MM` it ends, when set (for editing). */
+	endTime?: string | null,
+	description: string,
 	/**  "10:00", "Tomorrow 10:00", "Fri". */
 	whenLabel?: string | null,
 	recurrence?: string | null,
@@ -727,8 +753,14 @@ export type TaskView_Serialize = {
 	dueMinute: number | null,
 	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
 	dueTime: string | null,
-	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	/**
+	 *  Where it ends on the timeline: its end time, else a 25-minute session
+	 *  per estimated one.
+	 */
 	dueEndMinute: number | null,
+	/**  Local `HH:MM` it ends, when set (for editing). */
+	endTime: string | null,
+	description: string,
 	/**  "10:00", "Tomorrow 10:00", "Fri". */
 	whenLabel: string | null,
 	recurrence: string | null,

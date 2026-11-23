@@ -48,7 +48,7 @@ export function StatsScreen() {
               aria-pressed={range === r.id}
               onClick={() => void setRange(r.id)}
               className={`h-9 rounded-lg px-3.5 text-[13px] font-medium ${
-                range === r.id ? "bg-white/12 text-text" : "text-text-secondary hover:text-text"
+                range === r.id ? "bg-white/12 text-focus" : "text-text-secondary hover:text-text"
               }`}
             >
               {r.label}

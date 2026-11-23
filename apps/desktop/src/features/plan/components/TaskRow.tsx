@@ -108,6 +108,9 @@ export function TaskRow({
           >
             {task.title}
           </span>
+          {task.description && (
+            <span className="block truncate text-xs text-text-secondary">{task.description}</span>
+          )}
           <span className="flex items-center gap-1 truncate text-xs text-text-muted">
             {milestoneTitle && (
               <span className="inline-flex shrink-0 items-center gap-1" style={{ color }}>

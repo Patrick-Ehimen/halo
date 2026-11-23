@@ -63,7 +63,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             commands::plan::milestone_delete,
             commands::plan::project_create,
             commands::plan::project_update,
-            commands::plan::project_archive,
+            commands::plan::project_delete,
             commands::plan::task_create,
             commands::plan::task_update,
             commands::plan::task_complete,
