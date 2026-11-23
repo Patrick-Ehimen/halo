@@ -13,8 +13,12 @@ import { AmbienceCard, ShieldCard, TodayCard, UpNextCard } from "./components/Si
 import { TimerRing } from "./components/TimerRing";
 import { PRESETS, describe, presetOf } from "./format";
 import { useFocusStore } from "./store";
+import { planApi } from "../plan/api";
+import { model } from "../plan/model";
+import { usePlanStore } from "../plan/store";
+import { timerApi } from "./api";
 
-export function FocusScreen() {
+export function FocusScreen({ onOpenPlan = () => {} }: { onOpenPlan?: () => void }) {
   const { snapshot, today, settings, prefs, error, connect, clearError } = useFocusStore();
   const actions = useFocusStore();
   const [intention, setIntention] = useState("");
@@ -24,6 +28,9 @@ export function FocusScreen() {
   const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => connect(), [connect]);
+  const plan = usePlanStore((st) => st.view);
+  const connectPlan = usePlanStore((st) => st.connect);
+  useEffect(() => connectPlan(), [connectPlan]);
 
   // The menu bar and the palette can ask for a panel here.
   useEffect(
@@ -80,6 +87,22 @@ export function FocusScreen() {
   }
 
   const view = describe(snapshot);
+  const upNext = plan
+    ? (() => {
+        const m = model(plan);
+        return plan.today
+          .filter((t) => !t.parentId && !t.completed)
+          .slice(0, 3)
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            meta: [t.whenLabel, m.projectOf(t)?.name, m.goalOf(t)?.title]
+              .filter(Boolean)
+              .join(" · "),
+            color: m.colorOf(t),
+          }));
+      })()
+    : [];
   const preset = presetOf(snapshot);
   const idle = snapshot.status === "idle";
   const inFocus = snapshot.phase === "focus";
@@ -184,6 +207,20 @@ export function FocusScreen() {
 
           <SettingChips snapshot={snapshot} />
 
+          {inFocus && !idle && (
+            <label className="w-full max-w-[540px]">
+              <span className="sr-only">Session note</span>
+              <textarea
+                key={snapshot.intention}
+                defaultValue={snapshot.note}
+                onBlur={(e) => void timerApi.setNote(e.target.value).catch(() => {})}
+                rows={2}
+                placeholder="Notes for this session"
+                className="w-full resize-none rounded-card border border-card-border bg-card px-3.5 py-2.5 text-[13px] text-text placeholder:text-text-muted outline-none select-text focus:border-white/16"
+              />
+            </label>
+          )}
+
           <p role="status" aria-live="polite" className="min-h-5 text-[13px] text-alert">
             {error}
           </p>
@@ -191,7 +228,12 @@ export function FocusScreen() {
 
         <aside className="flex flex-[1_1_300px] flex-col gap-3.5 border-l border-hairline px-6 py-7">
           <TodayCard today={today} onLog={() => setLogOpen(true)} />
-          <UpNextCard />
+          <UpNextCard
+            tasks={upNext}
+            canStart={idle && inFocus}
+            onStart={(id) => void planApi.startTask(id, preset).catch(() => {})}
+            onOpenPlan={onOpenPlan}
+          />
           <ShieldCard />
           <AmbienceCard />
         </aside>

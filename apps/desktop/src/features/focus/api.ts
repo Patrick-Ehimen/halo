@@ -34,6 +34,7 @@ export const timerApi = {
   end: () => unwrap(commands.timerEnd()),
   todayFocus: () => unwrap(commands.todayFocus()),
   checkIn: (response: CheckInResponse) => unwrap(commands.checkIn(response)),
+  setNote: (note: string) => unwrap(commands.timerSetNote(note)),
   settings: () => unwrap(commands.timerSettings()),
   setSettings: (settings: TimerSettings) => unwrap(commands.timerSetSettings(settings)),
   /** `started` is a `datetime-local` value; Rust turns it into a timestamp. */

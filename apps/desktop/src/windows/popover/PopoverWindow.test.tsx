@@ -20,6 +20,8 @@ const idle: TimerSnapshot = {
   overflowEnabled: true,
   autoStartBreaks: true,
   intention: "",
+  taskId: null,
+  note: "",
 };
 
 const running: TimerSnapshot = {

@@ -18,6 +18,8 @@ export const running: TimerSnapshot = {
   overflowEnabled: true,
   autoStartBreaks: true,
   intention: "Write matching-engine tests",
+  taskId: null,
+  note: "",
 };
 
 /** Fresh mocks for the focus and app APIs. Use inside `vi.hoisted`. */

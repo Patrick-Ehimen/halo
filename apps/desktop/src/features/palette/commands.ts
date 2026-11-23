@@ -10,7 +10,12 @@ export type PaletteAction =
   | { type: "toggleMini" }
   | { type: "openMain" }
   | { type: "openSettings" }
-  | { type: "logSession" };
+  | { type: "logSession" }
+  | { type: "startTask"; taskId: string }
+  | { type: "addTask"; text: string };
+
+/** A task the palette can start. */
+export type PaletteTask = { id: string; title: string };
 
 export type PaletteItem = { id: string; label: string; hint: string; action: PaletteAction };
 
@@ -55,7 +60,11 @@ export function parseQuickStart(
 }
 
 /** Every command that makes sense right now, before filtering. */
-export function paletteItems(s: TimerSnapshot | null, miniShown: boolean): PaletteItem[] {
+export function paletteItems(
+  s: TimerSnapshot | null,
+  miniShown: boolean,
+  tasks: PaletteTask[] = [],
+): PaletteItem[] {
   const items: PaletteItem[] = [];
   const idle = s?.status === "idle";
   const onFocus = s?.phase === "focus";
@@ -102,6 +111,16 @@ export function paletteItems(s: TimerSnapshot | null, miniShown: boolean): Palet
     { id: "settings", label: "Timer settings", hint: "⌘,", action: { type: "openSettings" } },
     { id: "log", label: "Log a missed session", hint: "", action: { type: "logSession" } },
   );
+  if (!s || (idle && onFocus)) {
+    for (const t of tasks) {
+      items.push({
+        id: `task:${t.id}`,
+        label: `Start: ${t.title}`,
+        hint: "Today",
+        action: { type: "startTask", taskId: t.id },
+      });
+    }
+  }
   return items;
 }
 
@@ -140,5 +159,12 @@ export function filterItems(
     };
     return [startItem, ...matches.filter((m) => m.id !== `start:${preset}`)];
   }
-  return matches;
+  // Anything else can become a task, read by quick add.
+  const add: PaletteItem = {
+    id: "add-task",
+    label: `Add task: ${query.trim()}`,
+    hint: "",
+    action: { type: "addTask", text: query.trim() },
+  };
+  return matches.length ? [...matches, add] : [add];
 }

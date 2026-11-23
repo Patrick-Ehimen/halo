@@ -18,6 +18,8 @@ const idle: TimerSnapshot = {
   overflowEnabled: true,
   autoStartBreaks: true,
   intention: "",
+  taskId: null,
+  note: "",
 };
 
 describe("parseQuickStart", () => {
@@ -61,7 +63,7 @@ describe("palette items", () => {
 
   it("filters by words and ranks prefix matches first", () => {
     const items = paletteItems(idle, false);
-    expect(filterItems(items, "mini", idle).map((i) => i.id)).toEqual(["mini"]);
+    expect(filterItems(items, "mini", idle).map((i) => i.id)).toEqual(["mini", "add-task"]);
     expect(filterItems(items, "log", idle)[0]?.id).toBe("log");
   });
 
@@ -69,6 +71,19 @@ describe("palette items", () => {
     const [first] = filterItems(paletteItems(idle, false), "focus 50 on meridian", idle);
     expect(first?.label).toBe("Start Deep 50 on “meridian”");
     expect(first?.action).toEqual({ type: "start", preset: "deep", intention: "meridian" });
+  });
+
+  it("offers today's tasks and adding anything as a task", () => {
+    const items = paletteItems(idle, false, [{ id: "t1", title: "Write tests" }]);
+    const found = filterItems(items, "write", idle);
+    expect(found[0]?.action).toEqual({ type: "startTask", taskId: "t1" });
+    const add = filterItems(items, "buy milk tomorrow", idle);
+    expect(add).toEqual([
+      expect.objectContaining({
+        label: "Add task: buy milk tomorrow",
+        action: { type: "addTask", text: "buy milk tomorrow" },
+      }),
+    ]);
   });
 
   it("no quick start while a session runs", () => {

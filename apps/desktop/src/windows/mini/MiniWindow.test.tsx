@@ -20,6 +20,8 @@ const running: TimerSnapshot = {
   overflowEnabled: true,
   autoStartBreaks: true,
   intention: "Matching-engine tests",
+  taskId: null,
+  note: "",
 };
 
 const mocks = vi.hoisted(() => ({

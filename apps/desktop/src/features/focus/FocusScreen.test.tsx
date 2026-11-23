@@ -20,6 +20,8 @@ const idle: TimerSnapshot = {
   overflowEnabled: true,
   autoStartBreaks: true,
   intention: "",
+  taskId: null,
+  note: "",
 };
 
 const running: TimerSnapshot = {
@@ -58,6 +60,10 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
+vi.mock("../plan/api", () => ({
+  planApi: { view: vi.fn().mockResolvedValue(null), startTask: vi.fn() },
+  onPlanChanged: () => () => {},
+}));
 vi.mock("../app/api", () => ({
   appApi: {
     getPrefs: vi.fn().mockResolvedValue(null),

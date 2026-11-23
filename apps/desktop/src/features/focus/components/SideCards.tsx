@@ -61,9 +61,68 @@ function ComingSoon({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function UpNextCard() {
+export type UpNextTask = { id: string; title: string; meta: string; color: string };
+
+/** Today's next open tasks, each ready to start. */
+export function UpNextCard({
+  tasks,
+  canStart,
+  onStart,
+  onOpenPlan,
+}: {
+  tasks: UpNextTask[];
+  canStart: boolean;
+  onStart: (id: string) => void;
+  onOpenPlan: () => void;
+}) {
   return (
-    <ComingSoon title="Up next" body="Plan your day in sessions. Tasks arrive with Today plan." />
+    <section aria-label="Up next" className={card}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Up next</h2>
+        <button
+          type="button"
+          onClick={onOpenPlan}
+          className="min-h-9 rounded-control px-2 text-[13px] font-medium text-focus hover:bg-focus/10"
+        >
+          Open plan
+        </button>
+      </div>
+      {tasks.length === 0 && (
+        <p className="mt-1.5 text-[13px] text-text-muted">Nothing left on today’s plan.</p>
+      )}
+      <ul>
+        {tasks.map((t) => (
+          <li
+            key={t.id}
+            className="flex items-center gap-2.5 border-t border-hairline py-2 first:border-t-0"
+          >
+            <span className="size-1.5 shrink-0 rounded-full" style={{ background: t.color }} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium">{t.title}</span>
+              <span className="block truncate text-xs text-text-muted">{t.meta}</span>
+            </span>
+            {canStart && (
+              <button
+                type="button"
+                aria-label={`Start ${t.title}`}
+                onClick={() => onStart(t.id)}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-focus/15 text-focus hover:bg-focus/25"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M8 5l12 7-12 7z" />
+                </svg>
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

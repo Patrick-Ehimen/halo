@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appApi } from "../../features/app/api";
 import { useFocusStore } from "../../features/focus/store";
+import { presetOf } from "../../features/focus/format";
+import { planApi } from "../../features/plan/api";
+import { usePlanStore } from "../../features/plan/store";
 import { filterItems, paletteItems, type PaletteAction } from "../../features/palette/commands";
 
 /** The ⌘K command palette. */
@@ -13,6 +16,16 @@ export function PaletteWindow() {
   const [miniShown, setMiniShown] = useState(false);
 
   useEffect(() => connect(), [connect]);
+  const plan = usePlanStore((st) => st.view);
+  const connectPlan = usePlanStore((st) => st.connect);
+  useEffect(() => connectPlan(), [connectPlan]);
+  const todayTasks = useMemo(
+    () =>
+      (plan?.today ?? [])
+        .filter((t) => !t.parentId && !t.completed)
+        .map((t) => ({ id: t.id, title: t.title })),
+    [plan],
+  );
 
   // Each time the palette opens: fresh query, focused input, current mini state.
   useEffect(() => {
@@ -31,8 +44,8 @@ export function PaletteWindow() {
   }, []);
 
   const items = useMemo(
-    () => filterItems(paletteItems(snapshot, miniShown), query, snapshot),
-    [snapshot, miniShown, query],
+    () => filterItems(paletteItems(snapshot, miniShown, todayTasks), query, snapshot),
+    [snapshot, miniShown, query, todayTasks],
   );
 
   const run = async (action: PaletteAction) => {
@@ -58,6 +71,10 @@ export function PaletteWindow() {
         return appApi.requestUi("openSettings");
       case "logSession":
         return appApi.requestUi("logSession");
+      case "startTask":
+        return planApi.startTask(action.taskId, snapshot ? presetOf(snapshot) : "pomodoro");
+      case "addTask":
+        return planApi.quickAdd(action.text);
     }
   };
 
