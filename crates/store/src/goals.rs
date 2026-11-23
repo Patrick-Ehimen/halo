@@ -126,6 +126,14 @@ pub fn counts(conn: &Connection, since: i64) -> Result<HashMap<String, GoalCount
     Ok(rows.collect::<rusqlite::Result<HashMap<_, _>>>()?)
 }
 
+/// When each finished goal was last updated (marked done), unix ms.
+pub fn done_times(conn: &Connection) -> Result<Vec<i64>> {
+    let mut stmt =
+        conn.prepare("SELECT updated_at FROM goals WHERE status = 'done' AND deleted_at IS NULL")?;
+    let rows = stmt.query_map([], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
 const SELECT: &str = "SELECT id, title, why, target_sessions, due_on, color, status FROM goals";
 
 fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {

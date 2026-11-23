@@ -17,6 +17,7 @@ halo-store = { path = "crates/store" }
 halo-timer = { path = "crates/timer" }
 halo-menubar = { path = "crates/menubar" }
 halo-plan = { path = "crates/plan" }
+halo-stats = { path = "crates/stats" }
 
 [workspace.lints.rust]
 unsafe_code = "warn"

@@ -41,6 +41,16 @@ pub fn record(
     Ok(id)
 }
 
+/// (focused, total) check-ins answered in `[from, to)`.
+pub fn counts_between(conn: &Connection, from: i64, to: i64) -> Result<(u32, u32)> {
+    Ok(conn.query_row(
+        "SELECT COALESCE(SUM(response = 'focused'), 0), COUNT(*) FROM check_ins
+         WHERE deleted_at IS NULL AND at >= ?1 AND at < ?2",
+        params![from, to],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,5 +101,14 @@ mod tests {
     fn refuses_an_unknown_session() {
         let (conn, _) = db_with_session();
         assert!(record(&conn, "nope", 1, Response::Focused, 1).is_err());
+    }
+
+    #[test]
+    fn counts_answers_in_a_range() {
+        let (conn, session) = db_with_session();
+        record(&conn, &session, 100, Response::Focused, 100).unwrap();
+        record(&conn, &session, 200, Response::Drifted, 200).unwrap();
+        record(&conn, &session, 900, Response::Focused, 900).unwrap();
+        assert_eq!(counts_between(&conn, 0, 500).unwrap(), (1, 2));
     }
 }

@@ -1,6 +1,6 @@
 //! Focus sessions.
 
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::Result;
 
@@ -143,6 +143,91 @@ pub fn set_notes(conn: &Connection, id: &str, notes: &str, now: i64) -> Result<(
         params![id, notes, now],
     )?;
     Ok(())
+}
+
+/// A finished session with everything stats and export need.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryRow {
+    pub id: String,
+    pub kind: String,
+    pub source: String,
+    pub started_at: i64,
+    pub ended_at: i64,
+    pub planned_secs: u32,
+    pub focused_secs: u32,
+    pub overflow_secs: u32,
+    pub pauses: u32,
+    pub intention: String,
+    /// 1 Rough, 2 Okay, 3 Good, 4 In flow.
+    pub rating: Option<u8>,
+    pub distractions: u32,
+    pub strict: bool,
+    pub notes: String,
+    /// The session's project, or its task's.
+    pub project_id: Option<String>,
+    pub task_id: Option<String>,
+}
+
+/// Finished sessions, oldest first.
+pub fn history(conn: &Connection) -> Result<Vec<HistoryRow>> {
+    let mut stmt = conn.prepare(
+        "SELECT s.id, s.kind, s.source, s.started_at, s.ended_at, s.planned_secs, s.focused_secs,
+                s.overflow_secs, s.pauses, s.intention, s.rating, s.distractions, s.strict, s.notes,
+                COALESCE(s.project_id, t.project_id), s.task_id
+         FROM sessions s LEFT JOIN tasks t ON t.id = s.task_id
+         WHERE s.deleted_at IS NULL AND s.ended_at IS NOT NULL
+         ORDER BY s.started_at",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(HistoryRow {
+            id: r.get(0)?,
+            kind: r.get(1)?,
+            source: r.get(2)?,
+            started_at: r.get(3)?,
+            ended_at: r.get(4)?,
+            planned_secs: r.get(5)?,
+            focused_secs: r.get(6)?,
+            overflow_secs: r.get(7)?,
+            pauses: r.get(8)?,
+            intention: r.get(9)?,
+            rating: r.get(10)?,
+            distractions: r.get(11)?,
+            strict: r.get(12)?,
+            notes: r.get(13)?,
+            project_id: r.get(14)?,
+            task_id: r.get(15)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// The post-session reflection: rating (1 to 4), distractions and notes.
+pub fn reflect(
+    conn: &Connection,
+    id: &str,
+    rating: Option<u8>,
+    distractions: u32,
+    notes: &str,
+    now: i64,
+) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET rating = ?2, distractions = ?3, notes = ?4, updated_at = ?5,
+                             synced_at = NULL
+         WHERE id = ?1",
+        params![id, rating, distractions, notes, now],
+    )?;
+    Ok(())
+}
+
+/// What a session's reflection starts from: (focused secs, distractions so far, notes).
+pub fn reflection_basis(conn: &Connection, id: &str) -> Result<Option<(u32, u32, String)>> {
+    Ok(conn
+        .query_row(
+            "SELECT focused_secs, distractions, notes FROM sessions WHERE id = ?1 AND deleted_at IS NULL",
+            [id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?)
 }
 
 /// "I drifted": one more distraction on this session.
@@ -352,5 +437,51 @@ mod tests {
             )
             .unwrap();
         assert_eq!(blips, 0);
+    }
+
+    #[test]
+    fn history_and_reflection() {
+        let conn = crate::test_db();
+        let p = crate::projects::create(
+            &conn,
+            &crate::projects::ProjectInput {
+                name: "p",
+                color: "#fff",
+                goal_id: None,
+            },
+            1,
+        )
+        .unwrap();
+        let t = crate::tasks::create(
+            &conn,
+            &crate::tasks::TaskInput::titled("t").in_project(&p),
+            1,
+        )
+        .unwrap();
+        crate::test_session(&conn, &t, 5_000);
+        let running = start(&conn, &started(9_000), 9_000).unwrap();
+
+        let h = history(&conn).unwrap();
+        assert_eq!(h.len(), 1, "running sessions aren't history yet");
+        assert_eq!(
+            h[0].project_id.as_deref(),
+            Some(p.as_str()),
+            "project comes through the task"
+        );
+
+        reflect(&conn, &h[0].id, Some(4), 2, "good run", 10).unwrap();
+        let h = history(&conn).unwrap();
+        assert_eq!(
+            (h[0].rating, h[0].distractions, h[0].notes.as_str()),
+            (Some(4), 2, "good run")
+        );
+        assert_eq!(
+            reflection_basis(&conn, &h[0].id).unwrap(),
+            Some((60, 2, "good run".into()))
+        );
+        assert_eq!(
+            reflection_basis(&conn, &running).unwrap().map(|b| b.0),
+            Some(0)
+        );
     }
 }
