@@ -25,14 +25,14 @@ export function Dropdown<T extends string>({ label, value, options, onChange }: 
 
   const close = (focusButton: boolean) => {
     setOpen(false);
-    if (focusButton) buttonRef.current?.focus();
+    if (focusButton) buttonRef.current?.focus({ preventScroll: true });
   };
   useDismiss(rootRef, () => close(false), open);
 
   const show = () => {
     setActive(selected);
     setOpen(true);
-    requestAnimationFrame(() => listRef.current?.focus());
+    requestAnimationFrame(() => listRef.current?.focus({ preventScroll: true }));
   };
 
   const pick = (index: number) => {

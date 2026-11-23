@@ -58,10 +58,28 @@
     color-scheme: dark;
   }
 
+  /* The page never scrolls or bounces; panels inside it do. `clip` (unlike
+     `hidden`) can't be scrolled by code either, e.g. when focus moves into a
+     dropdown near the edge. */
   html,
   body,
   #root {
     height: 100%;
+    overflow: clip;
+    overscroll-behavior: none;
+  }
+
+  /* Absolutely placed things (screen-reader-only labels, menus) anchor here,
+     not to the page, so nothing can make the page taller than the window and
+     give focus something to scroll to. */
+  #root {
+    position: relative;
+  }
+
+  /* Scrolling past the end of a panel stops there: no macOS rubber-band
+     bounce, and no handing the scroll on to the page. */
+  * {
+    overscroll-behavior: none;
   }
 
   html.is-transparent,
@@ -78,5 +96,27 @@
     -webkit-font-smoothing: antialiased;
     user-select: none;
     cursor: default;
+  }
+
+  /* Anything clickable shows a pointer; anything turned off says so. */
+  button,
+  a[href],
+  summary,
+  select,
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]),
+  [role="button"],
+  [role="tab"],
+  [role="switch"],
+  [role="option"],
+  [role="menuitem"],
+  [role="link"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  :disabled {
+    cursor: not-allowed;
   }
 }
