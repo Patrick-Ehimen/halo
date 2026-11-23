@@ -3,4 +3,5 @@
 
 pub mod app;
 pub mod plan;
+pub mod stats;
 pub mod timer;

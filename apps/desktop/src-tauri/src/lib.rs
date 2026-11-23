@@ -11,6 +11,7 @@ mod prefs;
 mod shield;
 mod shortcuts;
 mod state;
+mod stats;
 mod timer;
 mod tracking;
 mod tray;
@@ -78,7 +79,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             commands::timer::timer_resume,
             commands::timer::timer_extend,
             commands::timer::timer_end,
-            commands::timer::today_focus,
+            commands::stats::today_focus,
+            commands::stats::stats_view,
+            commands::stats::export_sessions,
+            commands::stats::reflection_state,
+            commands::stats::reflect,
             commands::timer::timer_settings,
             commands::timer::timer_set_settings,
             commands::timer::log_session,
@@ -136,6 +141,7 @@ pub fn run() {
             windows::create_popover(handle)?;
             windows::create_palette(handle)?;
             windows::create_check_in(handle)?;
+            windows::create_reflection(handle)?;
             mini::create(handle)?;
             tray::create(handle, &initial)?;
             shortcuts::register(handle);

@@ -40,6 +40,8 @@ pub struct LiveTimer {
     project_id: Option<String>,
     /// A note on the running session.
     note: String,
+    /// The last saved focus session and its intention, for the reflection card.
+    last_session: Option<(String, String)>,
 }
 
 impl LiveTimer {
@@ -53,6 +55,7 @@ impl LiveTimer {
             task_id: None,
             project_id: None,
             note: String::new(),
+            last_session: None,
         }
     }
 }
@@ -312,7 +315,10 @@ fn persist(
             Transition::FocusEnded(summary) => {
                 live.check_in_at = None;
                 match live.session_id.take() {
-                    Some(id) => finish_session(state, &id, summary, now)?,
+                    Some(id) => {
+                        live.last_session = finish_session(state, &id, summary, now)?
+                            .then(|| (id, live.intention.clone()));
+                    }
                     // Started before this run kept rows (shouldn't happen): save it whole.
                     None => save_session(state, summary, &live.intention, "timer")?,
                 }
@@ -355,12 +361,13 @@ fn progress_of(s: &halo_timer::Snapshot) -> halo_store::sessions::Progress {
     }
 }
 
-fn finish_session(state: &AppState, id: &str, s: &SessionSummary, now: Millis) -> Result<()> {
+/// Saves a finished session. Returns whether it was kept.
+fn finish_session(state: &AppState, id: &str, s: &SessionSummary, now: Millis) -> Result<bool> {
     let conn = state.db()?;
     // Sessions under a minute are accidental starts; don't keep them.
     if s.focused_ms < halo_timer::MINUTE {
         halo_store::sessions::discard(&conn, id, ms_i64(now))?;
-        return Ok(());
+        return Ok(false);
     }
     let progress = halo_store::sessions::Progress {
         planned_secs: secs(s.planned_ms),
@@ -369,7 +376,27 @@ fn finish_session(state: &AppState, id: &str, s: &SessionSummary, now: Millis) -
         pauses: s.pauses,
     };
     halo_store::sessions::finish(&conn, id, ms_i64(s.ended_at), &progress, ms_i64(now))?;
-    Ok(())
+    Ok(true)
+}
+
+/// The last saved focus session and the break waiting after it.
+pub struct LastSession {
+    /// The session's id and intention.
+    pub session: Option<(String, String)>,
+    /// "Start 10 min break" when a break is waiting to start.
+    pub pending_break: Option<String>,
+}
+
+pub fn last_session(state: &AppState) -> Result<LastSession> {
+    let live = state.timer()?;
+    let s = live.engine.snapshot(now_ms());
+    let pending_break = (s.status == halo_timer::Status::Idle
+        && matches!(s.phase, Phase::ShortBreak | Phase::LongBreak))
+    .then(|| format!("Start {} min break", s.planned_ms / halo_timer::MINUTE));
+    Ok(LastSession {
+        session: live.last_session.clone(),
+        pending_break,
+    })
 }
 
 /// Saves the answer to the open check-in and closes the card.
@@ -450,8 +477,11 @@ fn surfaces(app: &AppHandle, transitions: &[Transition]) -> Result<()> {
                 crate::overlay::close(app)?;
             }
             Transition::CheckInDue => crate::windows::show_check_in(app)?,
-            Transition::FocusEnded(_) => {
+            Transition::FocusEnded(summary) => {
                 crate::windows::hide_check_in(app)?;
+                if summary.focused_ms >= halo_timer::MINUTE && crate::prefs::get(app).reflect {
+                    crate::windows::show_reflection(app)?;
+                }
                 // Task and goal counts include the session now.
                 crate::plan::changed(app);
             }

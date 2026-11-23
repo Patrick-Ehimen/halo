@@ -64,8 +64,15 @@ export const commands = {
 	timerResume: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_resume", undefined, options)),
 	timerExtend: (minutes: number, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_extend", { minutes }, options)),
 	timerEnd: (options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_end", undefined, options)),
-	/**  Focus saved today, in the user's local day. */
+	/**  Focus today: the goal ring, the tree, the streak. */
 	todayFocus: (options?: InvokeOptions) => typedError<TodayFocus, IpcError>(__TAURI_INVOKE("today_focus", undefined, options)),
+	statsView: (range: StatsRange, options?: InvokeOptions) => typedError<StatsView_Serialize, IpcError>(__TAURI_INVOKE("stats_view", { range }, options)),
+	/**  Writes every session to Downloads. Returns the file's path. */
+	exportSessions: (format: ExportFormat, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("export_sessions", { format }, options)),
+	/**  What the reflection card shows; `null` when there's nothing to reflect on. */
+	reflectionState: (options?: InvokeOptions) => typedError<ReflectionView_Serialize | null, IpcError>(__TAURI_INVOKE("reflection_state", undefined, options)),
+	/**  Saves the reflection and closes the card. */
+	reflect: (input: ReflectionInput_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("reflect", { input }, options)),
 	timerSettings: (options?: InvokeOptions) => typedError<TimerSettings_Serialize, IpcError>(__TAURI_INVOKE("timer_settings", undefined, options)),
 	/**  Saves timer settings. The running phase keeps its length; the rest applies now. */
 	timerSetSettings: (settings: TimerSettings_Deserialize, options?: InvokeOptions) => typedError<TimerSnapshot_Serialize, IpcError>(__TAURI_INVOKE("timer_set_settings", { settings }, options)),
@@ -85,6 +92,17 @@ export const events = {
 };
 
 /* Types */
+export type AchievementView = {
+	id: string,
+	name: string,
+	description: string,
+	progress: number,
+	target: number,
+	/**  "Earned 14 Nov", or "6 of 10". */
+	status: string,
+	earned: boolean,
+};
+
 export type AppInfo = {
 	version: string,
 	schemaVersion: number,
@@ -118,6 +136,8 @@ export type BlockView_Serialize = {
 
 /**  An answer to "Still on it?". */
 export type CheckInResponse = "focused" | "drifted";
+
+export type ExportFormat = "csv" | "json";
 
 export type GoalForm = GoalForm_Serialize | GoalForm_Deserialize;
 
@@ -197,12 +217,44 @@ export type GoalView_Serialize = {
 	milestones: MilestoneView_Serialize[],
 };
 
+export type GroveDay = {
+	/**  "Mon". */
+	label: string,
+	stage: TreeStageView,
+	today: boolean,
+};
+
+export type HeatDay = HeatDay_Serialize | HeatDay_Deserialize;
+
+export type HeatDay_Deserialize = {
+	/**  "Mon 16 Nov · 2h 10m". */
+	label: string,
+	/**  0..=4; `null` for days still to come. */
+	level?: number | null,
+};
+
+export type HeatDay_Serialize = {
+	/**  "Mon 16 Nov · 2h 10m". */
+	label: string,
+	/**  0..=4; `null` for days still to come. */
+	level: number | null,
+};
+
 /**  Error shape sent over IPC. Typed on the TS side via tauri-specta. */
 export type IpcError = { kind: "db"; message: string } | { kind: "io"; message: string } | 
 /**  The timer refused an action (e.g. no pauses left). The message is user-facing. */
 { kind: "timer"; message: string } | 
 /**  Input the user can fix. The message is user-facing. */
 { kind: "invalid"; message: string } | { kind: "internal"; message: string };
+
+/**  A headline number: "Focus score · 82 · +6 vs last week". */
+export type Kpi = {
+	label: string,
+	value: string,
+	detail: string,
+	/**  The detail is good news (shown in green). */
+	good: boolean,
+};
 
 export type MenubarShows = 
 /**  The ring and the time. */
@@ -283,6 +335,10 @@ export type Prefs_Deserialize = {
 	menubarSeconds?: boolean,
 	/**  Template icon that matches other menu bar icons; off uses Halo's colours. */
 	menubarMonochrome?: boolean,
+	/**  Daily focus goal in minutes: the goal ring, the tree, the heatmap. */
+	dailyGoalMinutes?: number,
+	/**  Ask "How did it go?" after each session. */
+	reflect?: boolean,
 };
 
 export type Prefs_Serialize = {
@@ -294,6 +350,10 @@ export type Prefs_Serialize = {
 	menubarSeconds: boolean,
 	/**  Template icon that matches other menu bar icons; off uses Halo's colours. */
 	menubarMonochrome: boolean,
+	/**  Daily focus goal in minutes: the goal ring, the tree, the heatmap. */
+	dailyGoalMinutes: number,
+	/**  Ask "How did it go?" after each session. */
+	reflect: boolean,
 };
 
 export type PresetId = "pomodoro" | "deep" | "flowtime";
@@ -310,6 +370,15 @@ export type ProjectForm_Serialize = {
 	name: string,
 	color: string,
 	goalId: string | null,
+};
+
+export type ProjectTime = {
+	name: string,
+	color: string,
+	/**  "9h 06m". */
+	label: string,
+	/**  Share of the range's focus, in thousandths. */
+	permille: number,
 };
 
 export type ProjectView = ProjectView_Serialize | ProjectView_Deserialize;
@@ -367,7 +436,88 @@ export type QuickAddPreview_Serialize = {
 	recurrenceLabel: string | null,
 };
 
+export type ReflectionInput = ReflectionInput_Serialize | ReflectionInput_Deserialize;
+
+export type ReflectionInput_Deserialize = {
+	/**  1 Rough, 2 Okay, 3 Good, 4 In flow; `null` to skip. */
+	rating?: number | null,
+	distractions: number,
+	notes: string,
+	/**  Start the break that's waiting. */
+	startBreak: boolean,
+};
+
+export type ReflectionInput_Serialize = {
+	/**  1 Rough, 2 Okay, 3 Good, 4 In flow; `null` to skip. */
+	rating: number | null,
+	distractions: number,
+	notes: string,
+	/**  Start the break that's waiting. */
+	startBreak: boolean,
+};
+
+/**  What the reflection card shows for the session that just ended. */
+export type ReflectionView = ReflectionView_Serialize | ReflectionView_Deserialize;
+
+/**  What the reflection card shows for the session that just ended. */
+export type ReflectionView_Deserialize = {
+	/**  "50:00". */
+	focusedLabel: string,
+	intention: string,
+	distractions: number,
+	notes: string,
+	/**  "Start 10 min break" when a break is waiting to start. */
+	breakLabel?: string | null,
+};
+
+/**  What the reflection card shows for the session that just ended. */
+export type ReflectionView_Serialize = {
+	/**  "50:00". */
+	focusedLabel: string,
+	intention: string,
+	distractions: number,
+	notes: string,
+	/**  "Start 10 min break" when a break is waiting to start. */
+	breakLabel: string | null,
+};
+
 export type SessionKind = "pomodoro" | "deep" | "flowtime" | "custom";
+
+export type StatsRange = "day" | "week" | "month" | "year";
+
+export type StatsView = StatsView_Serialize | StatsView_Deserialize;
+
+export type StatsView_Deserialize = {
+	/**  "23–29 Nov". */
+	rangeLabel: string,
+	kpis: Kpi[],
+	/**  24 weeks, oldest first, Monday to Sunday. */
+	heatmap: HeatDay_Deserialize[][],
+	/**  Focus minutes for each hour of the day, 0 to 23, in the range. */
+	hours: number[],
+	/**  "09:00–11:00", the best two hours in the range. */
+	bestHours?: string | null,
+	projects: ProjectTime[],
+	achievements: AchievementView[],
+	/**  The last 14 days' trees. */
+	grove: GroveDay[],
+};
+
+export type StatsView_Serialize = {
+	/**  "23–29 Nov". */
+	rangeLabel: string,
+	kpis: Kpi[],
+	/**  24 weeks, oldest first, Monday to Sunday. */
+	heatmap: HeatDay_Serialize[][],
+	/**  Focus minutes for each hour of the day, 0 to 23, in the range. */
+	hours: number[],
+	/**  "09:00–11:00", the best two hours in the range. */
+	bestHours: string | null,
+	projects: ProjectTime[],
+	achievements: AchievementView[],
+	/**  The last 14 days' trees. */
+	grove: GroveDay[],
+};
 
 export type TaskForm = TaskForm_Serialize | TaskForm_Deserialize;
 
@@ -549,10 +699,24 @@ export type TimerTick_Deserialize = TimerSnapshot_Deserialize;
 /**  Emitted whenever the shown second or the timer state changes. */
 export type TimerTick_Serialize = TimerSnapshot_Serialize;
 
+/**  Today at a glance: focus, the goal ring, the tree, the streak. */
 export type TodayFocus = {
 	focusedSecs: number,
 	sessions: number,
+	/**  "3h 20m". */
+	focusedLabel: string,
+	/**  "of your 5h goal". */
+	goalLabel: string,
+	/**  Progress toward the daily goal, thousandths, capped at 1000. */
+	goalPermille: number,
+	tree: TreeStageView,
+	streak: number,
+	streakLongest: number,
+	/**  Today already counts toward the streak. */
+	streakToday: boolean,
 };
+
+export type TreeStageView = "seed" | "sprout" | "sapling" | "youngTree" | "tree" | "bloom";
 
 export type UiAction = "openSettings" | "logSession";
 

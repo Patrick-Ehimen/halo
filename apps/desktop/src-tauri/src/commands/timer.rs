@@ -1,10 +1,7 @@
-use chrono::{Days, Local, NaiveDateTime, NaiveTime, TimeZone};
-use serde::Serialize;
-use specta::Type;
-use tauri::{AppHandle, State};
+use chrono::{Local, NaiveDateTime, TimeZone};
+use tauri::AppHandle;
 
 use crate::error::{Error, IpcError};
-use crate::state::AppState;
 use crate::timer::{self, CheckInResponse, PresetId, SessionKind, TimerSettings, TimerSnapshot};
 
 #[tauri::command]
@@ -126,37 +123,6 @@ pub fn timer_set_note(app: AppHandle, note: String) -> Result<TimerSnapshot, Ipc
 #[specta::specta]
 pub fn check_in(app: AppHandle, response: CheckInResponse) -> Result<(), IpcError> {
     Ok(timer::record_check_in(&app, response)?)
-}
-
-#[derive(Debug, Serialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct TodayFocus {
-    pub focused_secs: u32,
-    pub sessions: u32,
-}
-
-/// Focus saved today, in the user's local day.
-#[tauri::command]
-#[specta::specta]
-pub fn today_focus(state: State<'_, AppState>) -> Result<TodayFocus, IpcError> {
-    let today = Local::now().date_naive();
-    let start_of = |date: chrono::NaiveDate| {
-        Local
-            .from_local_datetime(&date.and_time(NaiveTime::MIN))
-            .earliest()
-            .map_or(0, |t| t.timestamp_millis())
-    };
-    let from = start_of(today);
-    let to = today
-        .checked_add_days(Days::new(1))
-        .map_or(i64::MAX, start_of);
-    let conn = state.db()?;
-    let (focused_secs, sessions) =
-        halo_store::sessions::totals(&conn, from, to).map_err(Error::from)?;
-    Ok(TodayFocus {
-        focused_secs,
-        sessions,
-    })
 }
 
 #[cfg(test)]

@@ -215,3 +215,53 @@ pub fn hide_check_in(app: &AppHandle) -> Result<()> {
     }
     Ok(())
 }
+
+pub const REFLECTION: &str = "reflection";
+const REFLECTION_WIDTH: f64 = 420.0;
+const REFLECTION_HEIGHT: f64 = 440.0;
+
+/// Creates the "How did it go?" card hidden.
+pub fn create_reflection(app: &AppHandle) -> Result<()> {
+    WebviewWindowBuilder::new(app, REFLECTION, WebviewUrl::App("index.html".into()))
+        .title("Halo reflection")
+        .inner_size(REFLECTION_WIDTH, REFLECTION_HEIGHT)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible_on_all_workspaces(true)
+        .accept_first_mouse(true)
+        .visible(false)
+        .build()?;
+    Ok(())
+}
+
+/// Shows the reflection card at the top right, focused so notes can be typed.
+/// The card reloads its content when it gains focus.
+pub fn show_reflection(app: &AppHandle) -> Result<()> {
+    let Some(card) = app.get_webview_window(REFLECTION) else {
+        return Ok(());
+    };
+    if let Some(m) = app.primary_monitor()? {
+        let scale = m.scale_factor();
+        let area = m.work_area();
+        let x = f64::from(area.position.x) + f64::from(area.size.width)
+            - (REFLECTION_WIDTH + CHECK_IN_MARGIN) * scale;
+        let y = f64::from(area.position.y) + CHECK_IN_MARGIN * scale;
+        card.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32))?;
+    }
+    card.show()?;
+    card.set_focus()?;
+    Ok(())
+}
+
+pub fn hide_reflection(app: &AppHandle) -> Result<()> {
+    if let Some(card) = app.get_webview_window(REFLECTION)
+        && card.is_visible()?
+    {
+        card.hide()?;
+    }
+    Ok(())
+}

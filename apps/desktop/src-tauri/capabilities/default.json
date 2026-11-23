@@ -8,6 +8,7 @@
     "mini",
     "palette",
     "check-in",
+    "reflection",
     "break-overlay-*"
   ],
   "permissions": [

@@ -33,6 +33,10 @@ pub struct Prefs {
     pub menubar_seconds: bool,
     /// Template icon that matches other menu bar icons; off uses Halo's colours.
     pub menubar_monochrome: bool,
+    /// Daily focus goal in minutes: the goal ring, the tree, the heatmap.
+    pub daily_goal_minutes: u32,
+    /// Ask "How did it go?" after each session.
+    pub reflect: bool,
 }
 
 impl Default for Prefs {
@@ -43,6 +47,8 @@ impl Default for Prefs {
             menubar_shows: MenubarShows::Timer,
             menubar_seconds: true,
             menubar_monochrome: true,
+            daily_goal_minutes: 300,
+            reflect: true,
         }
     }
 }
@@ -81,6 +87,11 @@ pub fn get(app: &AppHandle) -> Prefs {
 
 /// Saves and applies new prefs.
 pub fn set(app: &AppHandle, prefs: Prefs) -> Result<Prefs> {
+    if !(30..=16 * 60).contains(&prefs.daily_goal_minutes) {
+        return Err(crate::error::Error::Invalid(
+            "Set a daily goal between 30 minutes and 16 hours",
+        ));
+    }
     let json = serde_json::to_string(&prefs)?;
     {
         let state = app.state::<AppState>();
