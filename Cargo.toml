@@ -16,6 +16,7 @@ chrono-tz = "0.10.4"
 halo-store = { path = "crates/store" }
 halo-timer = { path = "crates/timer" }
 halo-menubar = { path = "crates/menubar" }
+halo-plan = { path = "crates/plan" }
 
 [workspace.lints.rust]
 unsafe_code = "warn"
