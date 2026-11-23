@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     updateTask: vi.fn(),
     deleteTask: vi.fn(),
     createBlock: vi.fn(),
+    moveBlock: vi.fn(),
     deleteBlock: vi.fn(),
     startTask: vi.fn(),
   },
@@ -121,7 +122,10 @@ describe("PlanScreen", () => {
       await screen.findByRole("button", { name: "Edit Write matching-engine tests" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Edit task" });
-    expect(within(dialog).getByLabelText("Time")).toHaveValue("09:30");
+    expect(within(dialog).getByLabelText("Starts")).toHaveValue("09:30");
+    fireEvent.change(within(dialog).getByLabelText("Description"), {
+      target: { value: "Cover the cancel path" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
     await vi.waitFor(() =>
       expect(mocks.planApi.updateTask).toHaveBeenCalledWith(
@@ -130,8 +134,34 @@ describe("PlanScreen", () => {
           title: "Write matching-engine tests",
           dueTime: "09:30",
           milestoneId: "m2",
+          description: "Cover the cancel path",
         }),
       ),
     );
+  });
+
+  it("edits a task's block instead of adding a second one", async () => {
+    mocks.planApi.moveBlock.mockResolvedValue(null);
+    render(<PlanScreen onOpenGoals={() => {}} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Block time for Write matching-engine tests" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Edit block" });
+    expect(within(dialog).getByLabelText("Starts")).toHaveValue("14:00");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await vi.waitFor(() =>
+      expect(mocks.planApi.moveBlock).toHaveBeenCalledWith("b1", "14:00", 100),
+    );
+    expect(mocks.planApi.createBlock).not.toHaveBeenCalled();
+  });
+
+  it("asks before deleting a block", async () => {
+    mocks.planApi.deleteBlock.mockResolvedValue(null);
+    render(<PlanScreen onOpenGoals={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete block Deep work" }));
+    expect(mocks.planApi.deleteBlock).not.toHaveBeenCalled();
+    const ask = screen.getByRole("alertdialog");
+    fireEvent.click(within(ask).getByRole("button", { name: "Delete" }));
+    await vi.waitFor(() => expect(mocks.planApi.deleteBlock).toHaveBeenCalledWith("b1"));
   });
 });

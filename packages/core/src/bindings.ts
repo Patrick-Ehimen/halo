@@ -43,7 +43,7 @@ export const commands = {
 	milestoneDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("milestone_delete", { id }, options)),
 	projectCreate: (form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("project_create", { form }, options)),
 	projectUpdate: (id: string, form: ProjectForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_update", { id, form }, options)),
-	projectArchive: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_archive", { id }, options)),
+	projectDelete: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("project_delete", { id }, options)),
 	taskCreate: (form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<string, IpcError>(__TAURI_INVOKE("task_create", { form }, options)),
 	taskUpdate: (id: string, form: TaskForm_Deserialize, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("task_update", { id, form }, options)),
 	/**  Finishes a task; a repeating one comes back on its next day. */
@@ -81,6 +81,24 @@ export const commands = {
 	 *  time from a `datetime-local` input, e.g. `2026-11-22T09:30`.
 	 */
 	logSession: (kind: SessionKind, started: string, minutes: number, intention: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("log_session", { kind, started, minutes, intention }, options)),
+	/**  Clocks, checklist, head check, gate and chart time, as of now. */
+	tradingView: (options?: InvokeOptions) => typedError<TradingView_Serialize, IpcError>(__TAURI_INVOKE("trading_view", undefined, options)),
+	tradingSettings: (options?: InvokeOptions) => typedError<TradingSettings_Serialize, IpcError>(__TAURI_INVOKE("trading_settings", undefined, options)),
+	tradingSetSettings: (settings: TradingSettings_Deserialize, options?: InvokeOptions) => typedError<TradingSettings_Serialize, IpcError>(__TAURI_INVOKE("trading_set_settings", { settings }, options)),
+	/**  Ticks or unticks a checklist item for today. */
+	checklistSet: (id: string, checked: boolean, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("checklist_set", { id, checked }, options)),
+	checklistAdd: (label: string, hint: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("checklist_add", { label, hint }, options)),
+	checklistRemove: (id: string, options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("checklist_remove", { id }, options)),
+	/**  Unticks today's checklist. */
+	checklistReset: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("checklist_reset", undefined, options)),
+	/**  Adds the suggested rules back (any not already there). */
+	checklistRestoreSuggested: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("checklist_restore_suggested", undefined, options)),
+	/**  "How clear is your head", 1–5, with what's going on. */
+	headCheck: (score: number, factors: string[], options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("head_check", { score, factors }, options)),
+	/**  Takes back today's head check (not a 1–2, which locks the day). */
+	headCheckClear: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("head_check_clear", undefined, options)),
+	/**  Opens System Settings at Privacy & Security → Automation. */
+	openAutomationSettings: (options?: InvokeOptions) => typedError<null, IpcError>(__TAURI_INVOKE("open_automation_settings", undefined, options)),
 };
 
 /** Events */
@@ -88,6 +106,7 @@ export const events = {
 	planChanged: makeEvent<PlanChanged, PlanChanged>("plan://changed"),
 	timerPhase: makeEvent<TimerPhaseEvent, TimerPhaseEvent>("timer://phase"),
 	timerTick: makeEvent<TimerTick_Serialize, TimerTick_Deserialize>("timer://tick"),
+	tradingChanged: makeEvent<TradingChanged, TradingChanged>("trading://changed"),
 	uiRequest: makeEvent<UiRequest, UiRequest>("ui://request"),
 };
 
@@ -120,6 +139,9 @@ export type BlockView_Deserialize = {
 	endMinute: number,
 	/**  "09:30–11:30". */
 	label: string,
+	/**  Local `HH:MM` it starts, and its length, for editing. */
+	startTime: string,
+	minutes: number,
 };
 
 export type BlockView_Serialize = {
@@ -132,12 +154,119 @@ export type BlockView_Serialize = {
 	endMinute: number,
 	/**  "09:30–11:30". */
 	label: string,
+	/**  Local `HH:MM` it starts, and its length, for editing. */
+	startTime: string,
+	minutes: number,
+};
+
+export type ChartDay = {
+	/**  "M". */
+	label: string,
+	minutes: number,
+	today: boolean,
+};
+
+/**  A charting app or site to count. */
+export type ChartSource = {
+	label: string,
+	/**  App names, e.g. "TradingView". */
+	apps: string[],
+	/**  Sites, e.g. "tradingview.com" (subdomains count). */
+	hosts: string[],
+};
+
+export type ChartSourceTime = {
+	label: string,
+	/**  Outside the window, "22m" ("<1m" under a minute). */
+	outside: string,
+	/**  Share of today's outside time, in thousandths. */
+	permille: number,
+	/**  "53%". */
+	share: string,
+	/**  The source's colour, the same everywhere it shows. */
+	color: string,
+};
+
+export type ChartView = ChartView_Serialize | ChartView_Deserialize;
+
+export type ChartView_Deserialize = {
+	/**  "41m". */
+	outsideLabel: string,
+	/**  "outside of 2h 05m today". */
+	totalLabel: string,
+	/**  Today's chart time on a 24-hour strip. */
+	segments: Segment[],
+	/**  Your window on the same strip. */
+	window: Segment[],
+	/**  Outside minutes, last 7 days, oldest first. */
+	week: ChartDay[],
+	sources: ChartSourceTime[],
+	/**  "Tracked from TradingView, Binance and DEX Screener". */
+	trackingLabel: string,
+	/**  Why browser sites aren't counted, when they aren't. */
+	browserNote?: string | null,
+	/**  Automation was refused: offer to open System Settings. */
+	browserBlocked: boolean,
+};
+
+export type ChartView_Serialize = {
+	/**  "41m". */
+	outsideLabel: string,
+	/**  "outside of 2h 05m today". */
+	totalLabel: string,
+	/**  Today's chart time on a 24-hour strip. */
+	segments: Segment[],
+	/**  Your window on the same strip. */
+	window: Segment[],
+	/**  Outside minutes, last 7 days, oldest first. */
+	week: ChartDay[],
+	sources: ChartSourceTime[],
+	/**  "Tracked from TradingView, Binance and DEX Screener". */
+	trackingLabel: string,
+	/**  Why browser sites aren't counted, when they aren't. */
+	browserNote: string | null,
+	/**  Automation was refused: offer to open System Settings. */
+	browserBlocked: boolean,
 };
 
 /**  An answer to "Still on it?". */
 export type CheckInResponse = "focused" | "drifted";
 
+export type CheckItemView = {
+	id: string,
+	label: string,
+	hint: string,
+	checked: boolean,
+};
+
+export type ClockView = {
+	market: MarketId,
+	name: string,
+	/**  The market your window follows. */
+	mine: boolean,
+	open: boolean,
+	/**  "Open", "Closed" or "Weekend". */
+	status: string,
+	/**  The market's own time, "17:28". */
+	localTime: string,
+	/**  The session in your zone, "15:30–22:00". */
+	range: string,
+	/**  "Closes in 2h 05m 10s", "Opens in 4h 31m 12s", or the weekend note. */
+	countdown: string,
+};
+
 export type ExportFormat = "csv" | "json";
+
+export type GateState = "steps" | "sitOut" | "ready" | "open";
+
+export type GateView = {
+	state: GateState,
+	/**  "2 steps to unlock", "Sitting out today", "Ready for 15:30", "Unlocked". */
+	label: string,
+	detail: string,
+	/**  Head check was 3: half size, max 2 trades. */
+	halfSize: boolean,
+};
 
 export type GoalForm = GoalForm_Serialize | GoalForm_Deserialize;
 
@@ -224,6 +353,15 @@ export type GroveDay = {
 	today: boolean,
 };
 
+export type HeadCheckView = {
+	score: number,
+	factors: string[],
+	/**  "Logged at 09:12". */
+	atLabel: string,
+	/**  A score of 1–2 today: locked for the rest of the day. */
+	lockedToday: boolean,
+};
+
 export type HeatDay = HeatDay_Serialize | HeatDay_Deserialize;
 
 export type HeatDay_Deserialize = {
@@ -256,6 +394,8 @@ export type Kpi = {
 	good: boolean,
 };
 
+export type MarketId = "sydney" | "tokyo" | "london" | "newYork";
+
 export type MenubarShows = 
 /**  The ring and the time. */
 "timer" | 
@@ -284,7 +424,7 @@ export type MilestoneView_Serialize = {
 	done: boolean,
 };
 
-export type PaceView = "done" | "ahead" | "onPace" | "behind" | "overdue" | "noDeadline";
+export type PaceView = "done" | "ahead" | "onPace" | "behind" | "justStarted" | "overdue" | "noDeadline";
 
 /**  Emitted after anything in the plan changes, so every window refreshes. */
 export type PlanChanged = null;
@@ -364,12 +504,16 @@ export type ProjectForm_Deserialize = {
 	name: string,
 	color: string,
 	goalId?: string | null,
+	/**  What the project is about. Optional. */
+	description?: string,
 };
 
 export type ProjectForm_Serialize = {
 	name: string,
 	color: string,
 	goalId: string | null,
+	/**  What the project is about. Optional. */
+	description: string,
 };
 
 export type ProjectTime = {
@@ -388,6 +532,7 @@ export type ProjectView_Deserialize = {
 	goalId?: string | null,
 	name: string,
 	color: string,
+	description: string,
 	openTasks: number,
 	/**  Estimated sessions left on its open tasks. */
 	sessionsLeft: number,
@@ -398,6 +543,7 @@ export type ProjectView_Serialize = {
 	goalId: string | null,
 	name: string,
 	color: string,
+	description: string,
 	openTasks: number,
 	/**  Estimated sessions left on its open tasks. */
 	sessionsLeft: number,
@@ -481,6 +627,14 @@ export type ReflectionView_Serialize = {
 	breakLabel: string | null,
 };
 
+/**  A piece of a 24-hour strip, in thousandths of the day. */
+export type Segment = {
+	start: number,
+	end: number,
+	/**  For chart time: inside the trading window. */
+	inside: boolean,
+};
+
 export type SessionKind = "pomodoro" | "deep" | "flowtime" | "custom";
 
 export type StatsRange = "day" | "week" | "month" | "year";
@@ -530,7 +684,11 @@ export type TaskForm_Deserialize = {
 	plannedOn?: string | null,
 	/**  Local `HH:MM` on `planned_on`. */
 	dueTime?: string | null,
+	/**  Local `HH:MM` it ends, after `due_time`. Optional. */
+	endTime?: string | null,
 	recurrence?: string | null,
+	/**  What the task involves. Optional. */
+	description?: string,
 };
 
 export type TaskForm_Serialize = {
@@ -542,7 +700,11 @@ export type TaskForm_Serialize = {
 	plannedOn: string | null,
 	/**  Local `HH:MM` on `planned_on`. */
 	dueTime: string | null,
+	/**  Local `HH:MM` it ends, after `due_time`. Optional. */
+	endTime: string | null,
 	recurrence: string | null,
+	/**  What the task involves. Optional. */
+	description: string,
 };
 
 export type TaskView = TaskView_Serialize | TaskView_Deserialize;
@@ -560,8 +722,14 @@ export type TaskView_Deserialize = {
 	dueMinute?: number | null,
 	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
 	dueTime?: string | null,
-	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	/**
+	 *  Where it ends on the timeline: its end time, else a 25-minute session
+	 *  per estimated one.
+	 */
 	dueEndMinute?: number | null,
+	/**  Local `HH:MM` it ends, when set (for editing). */
+	endTime?: string | null,
+	description: string,
 	/**  "10:00", "Tomorrow 10:00", "Fri". */
 	whenLabel?: string | null,
 	recurrence?: string | null,
@@ -585,8 +753,14 @@ export type TaskView_Serialize = {
 	dueMinute: number | null,
 	/**  Local time it's due, `HH:MM`, whatever the day (for editing). */
 	dueTime: string | null,
-	/**  Where it ends on the timeline: a 25-minute session per estimated one. */
+	/**
+	 *  Where it ends on the timeline: its end time, else a 25-minute session
+	 *  per estimated one.
+	 */
 	dueEndMinute: number | null,
+	/**  Local `HH:MM` it ends, when set (for editing). */
+	endTime: string | null,
+	description: string,
 	/**  "10:00", "Tomorrow 10:00", "Fri". */
 	whenLabel: string | null,
 	recurrence: string | null,
@@ -595,6 +769,12 @@ export type TaskView_Serialize = {
 	completed: boolean,
 	/**  Planned before today and still open. */
 	overdue: boolean,
+};
+
+export type TimelineRow = {
+	name: string,
+	mine: boolean,
+	segments: Segment[],
 };
 
 export type TimerPhase = "focus" | "shortBreak" | "longBreak";
@@ -716,9 +896,110 @@ export type TodayFocus = {
 	streakToday: boolean,
 };
 
+/**  Tells every window the desk changed (checklist, head check, settings). */
+export type TradingChanged = null;
+
+export type TradingSettings = TradingSettings_Serialize | TradingSettings_Deserialize;
+
+export type TradingSettings_Deserialize = {
+	/**  IANA zone the desk is shown in. */
+	zone?: string,
+	/**  The session your trading window follows. */
+	market?: MarketId,
+	/**  Days the window is open, Monday first, in that market's own days. */
+	days?: boolean[],
+	/**  Notify after charting outside the window for `nudge_minutes`. */
+	nudge?: boolean,
+	nudgeMinutes?: number,
+	/**  Read the browser's front tab (needs Automation permission). */
+	trackBrowsers?: boolean,
+	/**  Show the time to your window in the menu bar when no session runs. */
+	menubarCountdown?: boolean,
+	sources?: ChartSource[],
+};
+
+export type TradingSettings_Serialize = {
+	/**  IANA zone the desk is shown in. */
+	zone: string,
+	/**  The session your trading window follows. */
+	market: MarketId,
+	/**  Days the window is open, Monday first, in that market's own days. */
+	days: boolean[],
+	/**  Notify after charting outside the window for `nudge_minutes`. */
+	nudge: boolean,
+	nudgeMinutes: number,
+	/**  Read the browser's front tab (needs Automation permission). */
+	trackBrowsers: boolean,
+	/**  Show the time to your window in the menu bar when no session runs. */
+	menubarCountdown: boolean,
+	sources: ChartSource[],
+};
+
+export type TradingView = TradingView_Serialize | TradingView_Deserialize;
+
+export type TradingView_Deserialize = {
+	/**  "Lagos". */
+	zoneLabel: string,
+	/**  "10:28:12" in your zone. */
+	nowLabel: string,
+	/**  "Your window opens in", "Your window is open · closes in", or the weekend line. */
+	headline: string,
+	/**  "4h 31m 12s", empty on the weekend. */
+	headlineTime: string,
+	windowOpen: boolean,
+	weekend: boolean,
+	/**  London and New York both open: peak liquidity. */
+	overlap: boolean,
+	clocks: ClockView[],
+	timeline: TimelineRow[],
+	/**  Now on the 24-hour strips, thousandths of the day. */
+	nowPermille: number,
+	checklist: CheckItemView[],
+	/**  "3 of 6 done · resets every morning". */
+	checklistSummary: string,
+	checklistDone: number,
+	headCheck?: HeadCheckView | null,
+	factorOptions: string[],
+	gate: GateView,
+	chart: ChartView_Deserialize,
+	/**  For the popover header: "NY opens in 4h 31m". */
+	shortLabel: string,
+};
+
+export type TradingView_Serialize = {
+	/**  "Lagos". */
+	zoneLabel: string,
+	/**  "10:28:12" in your zone. */
+	nowLabel: string,
+	/**  "Your window opens in", "Your window is open · closes in", or the weekend line. */
+	headline: string,
+	/**  "4h 31m 12s", empty on the weekend. */
+	headlineTime: string,
+	windowOpen: boolean,
+	weekend: boolean,
+	/**  London and New York both open: peak liquidity. */
+	overlap: boolean,
+	clocks: ClockView[],
+	timeline: TimelineRow[],
+	/**  Now on the 24-hour strips, thousandths of the day. */
+	nowPermille: number,
+	checklist: CheckItemView[],
+	/**  "3 of 6 done · resets every morning". */
+	checklistSummary: string,
+	checklistDone: number,
+	headCheck: HeadCheckView | null,
+	factorOptions: string[],
+	gate: GateView,
+	chart: ChartView_Serialize,
+	/**  For the popover header: "NY opens in 4h 31m". */
+	shortLabel: string,
+};
+
 export type TreeStageView = "seed" | "sprout" | "sapling" | "youngTree" | "tree" | "bloom";
 
-export type UiAction = "openSettings" | "logSession";
+export type UiAction = "openSettings" | "logSession" | 
+/**  Show the trading desk. */
+"openTrading";
 
 /**  Asks the main window to open a panel. Emitted after the window is shown. */
 export type UiRequest = {

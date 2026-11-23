@@ -1,0 +1,15 @@
+[package]
+name = "halo-trading"
+version = "0.1.0"
+description = "Halo trading desk logic: session clocks, the FX weekend, the trading window, the unlock gate and chart time. Pure, no Tauri."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono.workspace = true
+chrono-tz.workspace = true
+halo-plan.workspace = true
+
+[lints]
+workspace = true

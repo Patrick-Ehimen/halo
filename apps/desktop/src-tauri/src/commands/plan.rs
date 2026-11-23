@@ -135,12 +135,12 @@ pub fn project_update(
 
 #[tauri::command]
 #[specta::specta]
-pub fn project_archive(
+pub fn project_delete(
     app: AppHandle,
     state: State<'_, AppState>,
     id: String,
 ) -> Result<(), IpcError> {
-    change(&app, plan::archive_project(&state, &id))
+    change(&app, plan::delete_project(&state, &id))
 }
 
 #[tauri::command]

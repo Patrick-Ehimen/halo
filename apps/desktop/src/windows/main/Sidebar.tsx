@@ -4,7 +4,7 @@ import type { TodayFocus } from "../../features/focus/api";
 import type { GoalView, ProjectView } from "../../features/plan/api";
 import { Dot, GoalRing } from "../../features/plan/components/ui";
 
-export type Screen = "focus" | "plan" | "goals" | "stats";
+export type Screen = "focus" | "plan" | "goals" | "stats" | "trading";
 
 type Item = { label: string; screen?: Screen; icon: (color: string) => ReactNode };
 
@@ -70,6 +70,7 @@ const ITEMS: Item[] = [
   },
   {
     label: "Trading desk",
+    screen: "trading",
     icon: (c) => (
       <svg {...stroke(c)}>
         <path d="M7 4v16M17 4v16M5 8h4v6H5zM15 10h4v5h-4z" />
@@ -150,7 +151,9 @@ export function Sidebar({ version, screen, onNavigate, goals, projects, today }:
             className="flex min-h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium text-text hover:bg-white/4"
           >
             <GoalRing size={16} stroke={2.6} percent={g.percent} color={g.color} />
-            <span className="truncate">{g.title}</span>
+            <span className="truncate" style={{ color: g.color }}>
+              {g.title}
+            </span>
           </button>
           {projects
             .filter((p) => p.goalId === g.id)

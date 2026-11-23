@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useAnchoredPopover } from "../hooks/useAnchoredPopover";
 import { useDismiss } from "../hooks/useDismiss";
 
 export type DropdownOption<T extends string> = { value: T; label: string };
@@ -25,14 +26,15 @@ export function Dropdown<T extends string>({ label, value, options, onChange }: 
 
   const close = (focusButton: boolean) => {
     setOpen(false);
-    if (focusButton) buttonRef.current?.focus();
+    if (focusButton) buttonRef.current?.focus({ preventScroll: true });
   };
   useDismiss(rootRef, () => close(false), open);
+  useAnchoredPopover(open, buttonRef, listRef, () => close(false), { maxHeight: 256 });
 
   const show = () => {
     setActive(selected);
     setOpen(true);
-    requestAnimationFrame(() => listRef.current?.focus());
+    requestAnimationFrame(() => listRef.current?.focus({ preventScroll: true }));
   };
 
   const pick = (index: number) => {
@@ -117,7 +119,7 @@ export function Dropdown<T extends string>({ label, value, options, onChange }: 
           aria-labelledby={`${id}-label`}
           aria-activedescendant={`${id}-opt-${active}`}
           onKeyDown={onListKey}
-          className="absolute top-full right-0 z-30 mt-1.5 max-h-64 min-w-full overflow-auto rounded-card border border-white/10 bg-surface p-1 shadow-popover outline-none"
+          className="fixed z-40 overflow-auto rounded-card border border-white/10 bg-surface p-1 shadow-popover outline-none"
         >
           {options.map((o, i) => {
             const isSelected = i === selected;

@@ -53,6 +53,31 @@ pub fn delete(conn: &Connection, id: &str, now: i64) -> Result<()> {
     crate::soft_or_hard_delete(conn, "time_blocks", id, now)
 }
 
+/// A task's blocks starting in `[from, to)`, in time order.
+pub fn list_for_task(
+    conn: &Connection,
+    task_id: &str,
+    from: i64,
+    to: i64,
+) -> Result<Vec<TimeBlock>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, task_id, title, starts_at, ends_at, kind FROM time_blocks
+         WHERE deleted_at IS NULL AND task_id = ?1 AND starts_at >= ?2 AND starts_at < ?3
+         ORDER BY starts_at",
+    )?;
+    let rows = stmt.query_map(params![task_id, from, to], |r| {
+        Ok(TimeBlock {
+            id: r.get(0)?,
+            task_id: r.get(1)?,
+            title: r.get(2)?,
+            starts_at: r.get(3)?,
+            ends_at: r.get(4)?,
+            kind: r.get(5)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
 /// Blocks overlapping `[from, to)`, in time order.
 pub fn list_between(conn: &Connection, from: i64, to: i64) -> Result<Vec<TimeBlock>> {
     let mut stmt = conn.prepare(

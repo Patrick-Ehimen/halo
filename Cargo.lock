@@ -1558,6 +1558,10 @@ dependencies = [
  "halo-stats",
  "halo-store",
  "halo-timer",
+ "halo-trading",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
  "serde",
  "serde_json",
  "specta",
@@ -1606,6 +1610,15 @@ dependencies = [
 [[package]]
 name = "halo-timer"
 version = "0.1.0"
+
+[[package]]
+name = "halo-trading"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "halo-plan",
+]
 
 [[package]]
 name = "hashbrown"

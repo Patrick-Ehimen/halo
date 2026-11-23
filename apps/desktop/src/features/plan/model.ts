@@ -46,7 +46,9 @@ export function formOf(t: TaskView): TaskForm & { id: string } {
     estimateSessions: t.estimateSessions,
     plannedOn: t.plannedOn,
     dueTime: t.dueTime,
+    endTime: t.endTime,
     recurrence: t.recurrence,
+    description: t.description,
   };
 }
 

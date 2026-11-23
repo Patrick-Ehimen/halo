@@ -448,6 +448,7 @@ mod tests {
                 name: "p",
                 color: "#fff",
                 goal_id: None,
+                description: "",
             },
             1,
         )

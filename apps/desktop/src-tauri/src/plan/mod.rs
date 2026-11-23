@@ -21,8 +21,9 @@ use crate::state::AppState;
 use crate::timer::now_ms;
 
 /// Colours offered for goals and projects, in the order new ones take them.
-pub const COLORS: [&str; 6] = [
-    "#F2B544", "#6CB6FF", "#C59CFF", "#5BD69A", "#FF9F7A", "#7FD1C9",
+pub const COLORS: [&str; 9] = [
+    "#F2B544", "#6CB6FF", "#C59CFF", "#5BD69A", "#FF9F7A", "#7FD1C9", "#FF8AC8", "#B5E06B",
+    "#8E9BFF",
 ];
 
 const DAY_MS: i64 = 86_400_000;
@@ -94,7 +95,15 @@ fn view_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, now: i64) -> Result<PlanVie
     for g in goal_rows {
         let due = g.due_on.as_deref().and_then(parse_date);
         let counts = recent.get(&g.id).copied().unwrap_or_default();
-        let stats = goal_stats(counts.done, g.target_sessions, due, today, counts.recent);
+        let started = local_minute(tz, g.created_at).map_or(today, |(d, _)| d);
+        let stats = goal_stats(
+            counts.done,
+            g.target_sessions,
+            due,
+            started,
+            today,
+            counts.recent,
+        );
         let (estimate_total, _) = tasks::goal_estimates(conn, &g.id)?;
         goals_out.push(GoalView {
             milestones: milestone_rows
@@ -134,6 +143,7 @@ fn view_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, now: i64) -> Result<PlanVie
                 goal_id: p.goal_id.clone(),
                 name: p.name.clone(),
                 color: p.color.clone(),
+                description: p.description.clone(),
                 open_tasks: u32::try_from(open.len()).unwrap_or(u32::MAX),
                 sessions_left: open
                     .iter()
@@ -158,6 +168,8 @@ fn view_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, now: i64) -> Result<PlanVie
             let (start, end) = (minute(b.starts_at), minute(b.ends_at));
             BlockView {
                 label: format!("{}–{}", hhmm(start), hhmm(end)),
+                start_time: hhmm(start),
+                minutes: u32::try_from((b.ends_at - b.starts_at) / 60_000).unwrap_or(0),
                 id: b.id,
                 task_id: b.task_id,
                 title: b.title,
@@ -183,6 +195,7 @@ fn view_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, now: i64) -> Result<PlanVie
 fn task_view<Tz: TimeZone>(tz: &Tz, t: &tasks::Task, today: NaiveDate) -> TaskView {
     let planned = t.planned_on.as_deref().and_then(parse_date);
     let due = t.due_at.and_then(|ms| local_minute(tz, ms));
+    let end = t.ends_at.and_then(|ms| local_minute(tz, ms));
     let completed = t.completed_at.is_some();
     let overdue = !completed && planned.is_some_and(|d| d < today);
     let when_label = match (due, planned) {
@@ -208,9 +221,13 @@ fn task_view<Tz: TimeZone>(tz: &Tz, t: &tasks::Task, today: NaiveDate) -> TaskVi
         planned_on: t.planned_on.clone(),
         due_minute: due.filter(|(d, _)| *d == today).map(|(_, m)| m),
         due_time: due.map(|(_, m)| hhmm(m)),
-        due_end_minute: due
-            .filter(|(d, _)| *d == today)
-            .map(|(_, m)| (m + t.estimate_sessions.max(1) * TIMELINE_SESSION_MINUTES).min(1440)),
+        due_end_minute: due.filter(|(d, _)| *d == today).map(|(d, m)| match end {
+            Some((end_day, end_m)) if end_day == d => end_m.max(m),
+            Some(_) => 1440,
+            None => (m + t.estimate_sessions.max(1) * TIMELINE_SESSION_MINUTES).min(1440),
+        }),
+        end_time: end.map(|(_, m)| hhmm(m)),
+        description: t.description.clone(),
         when_label,
         recurrence_label: t
             .recurrence
@@ -298,6 +315,20 @@ fn valid_title(s: &str) -> Result<&str> {
         return Err(Error::Invalid("Keep the name under 200 characters"));
     }
     Ok(t)
+}
+
+/// The most a description holds, in characters.
+const MAX_DESCRIPTION: usize = 2000;
+
+fn valid_description(s: &str) -> Result<&str> {
+    let t = s.trim();
+    if t.chars().count() > MAX_DESCRIPTION {
+        Err(Error::Invalid(
+            "Keep the description under 2,000 characters",
+        ))
+    } else {
+        Ok(t)
+    }
 }
 
 fn valid_color(c: &str) -> Result<&str> {
@@ -393,6 +424,7 @@ pub fn create_project(state: &AppState, f: &ProjectForm) -> Result<String> {
         name: valid_title(&f.name)?,
         color: valid_color(&f.color)?,
         goal_id: f.goal_id.as_deref().filter(|g| !g.is_empty()),
+        description: valid_description(&f.description)?,
     };
     Ok(projects::create(&*state.db()?, &input, now_i64())?)
 }
@@ -402,12 +434,13 @@ pub fn update_project(state: &AppState, id: &str, f: &ProjectForm) -> Result<()>
         name: valid_title(&f.name)?,
         color: valid_color(&f.color)?,
         goal_id: f.goal_id.as_deref().filter(|g| !g.is_empty()),
+        description: valid_description(&f.description)?,
     };
     Ok(projects::update(&*state.db()?, id, &input, now_i64())?)
 }
 
-pub fn archive_project(state: &AppState, id: &str) -> Result<()> {
-    Ok(projects::archive(&*state.db()?, id, now_i64())?)
+pub fn delete_project(state: &AppState, id: &str) -> Result<()> {
+    Ok(projects::delete(&*state.db()?, id, now_i64())?)
 }
 
 /// A task form as stored values: the due time becomes a timestamp on the
@@ -415,6 +448,7 @@ pub fn archive_project(state: &AppState, id: &str) -> Result<()> {
 struct Resolved {
     planned_on: Option<String>,
     due_at: Option<i64>,
+    ends_at: Option<i64>,
     recurrence: Option<String>,
 }
 
@@ -436,6 +470,23 @@ fn resolve<Tz: TimeZone>(tz: &Tz, f: &TaskForm, now: i64) -> Result<Resolved> {
                 .map_err(|_| Error::Invalid("Use a time like 09:30"))?,
         ),
     };
+    let end = match f
+        .end_time
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        None => None,
+        Some(s) => Some(
+            NaiveTime::parse_from_str(s, "%H:%M")
+                .map_err(|_| Error::Invalid("Use an end time like 10:30"))?,
+        ),
+    };
+    match (time, end) {
+        (None, Some(_)) => return Err(Error::Invalid("Set a start time before an end time")),
+        (Some(t), Some(e)) if e <= t => return Err(Error::Invalid("End it after it starts")),
+        _ => {}
+    }
     let today = today_in(tz, now)?;
     if planned.is_none() {
         planned = match (&rule, time) {
@@ -447,6 +498,10 @@ fn resolve<Tz: TimeZone>(tz: &Tz, f: &TaskForm, now: i64) -> Result<Resolved> {
     Ok(Resolved {
         due_at: match (planned, time) {
             (Some(d), Some(t)) => Some(at_local(tz, d, t)),
+            _ => None,
+        },
+        ends_at: match (planned, end) {
+            (Some(d), Some(e)) => Some(at_local(tz, d, e)),
             _ => None,
         },
         planned_on: planned.map(|d| d.format("%Y-%m-%d").to_string()),
@@ -464,6 +519,8 @@ fn task_input<'a>(f: &'a TaskForm, r: &'a Resolved) -> Result<tasks::TaskInput<'
         planned_on: r.planned_on.as_deref(),
         due_at: r.due_at,
         recurrence: r.recurrence.as_deref(),
+        description: valid_description(&f.description)?,
+        ends_at: r.ends_at,
     })
 }
 
@@ -482,9 +539,34 @@ fn create_task_in<Tz: TimeZone>(
 }
 
 pub fn update_task(state: &AppState, id: &str, f: &TaskForm) -> Result<()> {
-    let now = now_i64();
-    let r = resolve(&Local, f, now)?;
-    Ok(tasks::update(&*state.db()?, id, &task_input(f, &r)?, now)?)
+    update_task_in(&*state.db()?, &Local, id, f, now_i64())
+}
+
+/// Saves a task. When its time moves within a day it has a block on, the
+/// block moves with it, keeping its length, so the timeline shows one item.
+fn update_task_in<Tz: TimeZone>(
+    conn: &Connection,
+    tz: &Tz,
+    id: &str,
+    f: &TaskForm,
+    now: i64,
+) -> Result<()> {
+    let r = resolve(tz, f, now)?;
+    tasks::update(conn, id, &task_input(f, &r)?, now)?;
+    let Some(due) = r.due_at else {
+        return Ok(());
+    };
+    let Some((day, _)) = local_minute(tz, due) else {
+        return Ok(());
+    };
+    let (from, to) = day_bounds(tz, day);
+    if let Some(b) = time_blocks::list_for_task(conn, id, from, to)?.first()
+        && b.starts_at != due
+    {
+        let ends = r.ends_at.unwrap_or(due + (b.ends_at - b.starts_at));
+        time_blocks::reschedule(conn, &b.id, due, ends, now)?;
+    }
+    Ok(())
 }
 
 pub fn complete_task(state: &AppState, id: &str) -> Result<()> {
@@ -507,10 +589,13 @@ fn complete_task_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, id: &str, now: i64
         .map_or(today, |d| d.max(today));
     let next = rule.next_after(from);
     let next_s = next.format("%Y-%m-%d").to_string();
-    let due_at = task
-        .due_at
-        .and_then(|ms| tz.timestamp_millis_opt(ms).single())
-        .map(|t| at_local(tz, next, t.naive_local().time()));
+    let on_next = |ms: i64| {
+        tz.timestamp_millis_opt(ms)
+            .single()
+            .map(|t| at_local(tz, next, t.naive_local().time()))
+    };
+    let due_at = task.due_at.and_then(on_next);
+    let ends_at = task.ends_at.and_then(on_next);
     tasks::create(
         conn,
         &tasks::TaskInput {
@@ -522,6 +607,8 @@ fn complete_task_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, id: &str, now: i64
             planned_on: Some(&next_s),
             due_at,
             recurrence: task.recurrence.as_deref(),
+            description: &task.description,
+            ends_at,
         },
         now,
     )?;
@@ -639,6 +726,7 @@ fn quick_add_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, text: &str, now: i64) 
                         name,
                         color,
                         goal_id: None,
+                        description: "",
                     },
                     now,
                 )?
@@ -655,6 +743,8 @@ fn quick_add_in<Tz: TimeZone>(conn: &Connection, tz: &Tz, text: &str, now: i64) 
         planned_on: Some(q.planned_on.unwrap_or(today).format("%Y-%m-%d").to_string()),
         due_time: q.due_time.map(|t| t.format("%H:%M").to_string()),
         recurrence: q.recurrence.map(|r| r.to_string()),
+        end_time: None,
+        description: String::new(),
     };
     create_task_in(conn, tz, &form, now)
 }
@@ -690,6 +780,8 @@ mod tests {
             planned_on: None,
             due_time: None,
             recurrence: None,
+            end_time: None,
+            description: String::new(),
         }
     }
 
@@ -736,6 +828,7 @@ mod tests {
                 name: "meridian-rs",
                 color: "#F2B544",
                 goal_id: Some(&g),
+                description: "",
             },
             1,
         )
@@ -812,6 +905,7 @@ mod tests {
                 name: "meridian-rs",
                 color: "#F2B544",
                 goal_id: Some(&g),
+                description: "",
             },
             1,
         )
@@ -880,5 +974,62 @@ mod tests {
         assert_eq!(end - start, 100 * 60_000);
         assert!(block_span(&Lagos, now(), "9.30", 50).is_err());
         assert!(block_span(&Lagos, now(), "09:30", 0).is_err());
+    }
+
+    #[test]
+    fn a_task_keeps_its_description_and_end_time() {
+        let conn = db();
+        let mut f = form("Review PR");
+        f.description = "  Check the matching engine changes  ".into();
+        f.due_time = Some("15:00".into());
+        f.end_time = Some("15:50".into());
+        create_task_in(&conn, &Lagos, &f, now()).unwrap();
+
+        let view = view_in(&conn, &Lagos, now()).unwrap();
+        let t = &view.today[0];
+        assert_eq!(t.description, "Check the matching engine changes");
+        assert_eq!(t.due_minute, Some(15 * 60));
+        assert_eq!(t.end_time.as_deref(), Some("15:50"));
+        // The end time sizes it on the timeline, not the session estimate.
+        assert_eq!(t.due_end_minute, Some(15 * 60 + 50));
+    }
+
+    #[test]
+    fn an_end_time_needs_a_start_before_it() {
+        let conn = db();
+        let mut f = form("Review PR");
+        f.end_time = Some("15:50".into());
+        assert!(create_task_in(&conn, &Lagos, &f, now()).is_err());
+        f.due_time = Some("16:00".into());
+        assert!(create_task_in(&conn, &Lagos, &f, now()).is_err());
+        f.due_time = Some("15:50".into());
+        assert!(create_task_in(&conn, &Lagos, &f, now()).is_err());
+    }
+
+    #[test]
+    fn editing_a_tasks_time_moves_its_block() {
+        let conn = db();
+        let mut f = form("Write tests");
+        f.due_time = Some("15:00".into());
+        let id = create_task_in(&conn, &Lagos, &f, now()).unwrap();
+        let (start, end) = block_span(&Lagos, now(), "15:00", 50).unwrap();
+        let input = time_blocks::BlockInput {
+            task_id: Some(&id),
+            title: "Write tests",
+            starts_at: start,
+            ends_at: end,
+            kind: "focus",
+        };
+        time_blocks::create(&conn, &input, now()).unwrap();
+
+        f.due_time = Some("16:00".into());
+        update_task_in(&conn, &Lagos, &id, &f, now()).unwrap();
+
+        let (from, to) = day_bounds(&Lagos, NaiveDate::from_ymd_opt(2026, 11, 21).unwrap());
+        let blocks = time_blocks::list_between(&conn, from, to).unwrap();
+        assert_eq!(blocks.len(), 1, "moved, not copied");
+        let (moved, _) = block_span(&Lagos, now(), "16:00", 50).unwrap();
+        assert_eq!(blocks[0].starts_at, moved);
+        assert_eq!(blocks[0].ends_at - blocks[0].starts_at, 50 * 60_000);
     }
 }

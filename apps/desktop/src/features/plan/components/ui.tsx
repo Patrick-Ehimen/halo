@@ -163,6 +163,9 @@ export function Dialog({
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-6">
       <form
         ref={ref}
+        // Rust checks every value and says what's wrong; the web view's own
+        // checks only show a vague "Invalid value".
+        noValidate
         role="dialog"
         aria-label={title}
         onSubmit={submit}
@@ -203,21 +206,38 @@ export function Dialog({
   );
 }
 
+export const textareaClass =
+  "min-h-[76px] w-full min-w-0 resize-y rounded-control border border-white/10 bg-control px-3 py-2.5 text-sm leading-normal text-text outline-none select-text focus:border-focus/60";
+
 export const fieldClass =
   "h-11 w-full min-w-0 rounded-control border border-white/10 bg-control px-3 text-sm text-text outline-none select-text focus:border-focus/60";
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * A labelled form control. Custom controls (pickers with popovers) name
+ * themselves, so they get a plain wrapper: a `<label>` would pass clicks
+ * inside their popover on to their button.
+ */
+export function Field({
+  label,
+  children,
+  custom = false,
+}: {
+  label: string;
+  children: ReactNode;
+  custom?: boolean;
+}) {
+  const Tag = custom ? "div" : "label";
   return (
-    <label className="grid gap-1.5 text-[13px] font-medium">
+    <Tag className="grid content-start gap-1.5 text-[13px] font-medium">
       {label}
       {children}
-    </label>
+    </Tag>
   );
 }
 
 export function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
-    <div role="radiogroup" aria-label="Colour" className="flex gap-2">
+    <div role="radiogroup" aria-label="Colour" className="flex flex-wrap gap-1">
       {COLORS.map((c) => (
         <button
           key={c}

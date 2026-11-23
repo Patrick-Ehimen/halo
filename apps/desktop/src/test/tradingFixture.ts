@@ -1,0 +1,121 @@
+import type { TradingSettings, TradingView } from "../features/trading/api";
+
+/** A Tuesday morning in Lagos: New York opens at 15:30, nothing done yet. */
+export const tradingMorning: TradingView = {
+  zoneLabel: "Lagos",
+  nowLabel: "11:28:00",
+  headline: "Your window opens in",
+  headlineTime: "4h 02m 00s",
+  windowOpen: false,
+  weekend: false,
+  overlap: false,
+  clocks: [
+    {
+      market: "sydney",
+      name: "Sydney",
+      mine: false,
+      open: false,
+      status: "Closed",
+      localTime: "21:28",
+      range: "23:00–08:00",
+      countdown: "Opens in 11h 32m 00s",
+    },
+    {
+      market: "tokyo",
+      name: "Tokyo",
+      mine: false,
+      open: false,
+      status: "Closed",
+      localTime: "19:28",
+      range: "01:00–10:00",
+      countdown: "Opens in 13h 32m 00s",
+    },
+    {
+      market: "london",
+      name: "London",
+      mine: false,
+      open: true,
+      status: "Open",
+      localTime: "10:28",
+      range: "09:00–17:30",
+      countdown: "Closes in 6h 02m 00s",
+    },
+    {
+      market: "newYork",
+      name: "New York",
+      mine: true,
+      open: false,
+      status: "Closed",
+      localTime: "05:28",
+      range: "15:30–22:00",
+      countdown: "Opens in 4h 02m 00s",
+    },
+  ],
+  timeline: [
+    {
+      name: "Sydney",
+      mine: false,
+      segments: [
+        { start: 0, end: 333, inside: false },
+        { start: 958, end: 1000, inside: false },
+      ],
+    },
+    { name: "Tokyo", mine: false, segments: [{ start: 41, end: 416, inside: false }] },
+    { name: "London", mine: false, segments: [{ start: 375, end: 729, inside: false }] },
+    { name: "New York", mine: true, segments: [{ start: 645, end: 916, inside: true }] },
+  ],
+  nowPermille: 477,
+  checklist: [
+    {
+      id: "a",
+      label: "Higher-timeframe bias written",
+      hint: "Daily and 4H, one sentence",
+      checked: true,
+    },
+    { id: "b", label: "Key levels marked", hint: "On your charts before the open", checked: false },
+  ],
+  checklistSummary: "1 of 2 done · resets every morning",
+  checklistDone: 1,
+  headCheck: null,
+  factorOptions: ["Slept well", "Took a loss today", "Feeling rushed", "FOMO", "Calm"],
+  gate: {
+    state: "steps",
+    label: "2 steps to unlock",
+    detail: "Finish the checklist and the head check to unlock your window.",
+    halfSize: false,
+  },
+  chart: {
+    outsideLabel: "41m",
+    totalLabel: "outside of 1h 01m today",
+    segments: [{ start: 583, end: 611, inside: false }],
+    window: [{ start: 645, end: 916, inside: true }],
+    week: ["W", "T", "F", "S", "S", "M", "T"].map((label, i) => ({
+      label,
+      minutes: i * 6,
+      today: i === 6,
+    })),
+    sources: [
+      { label: "TradingView", outside: "29m", permille: 707, share: "71%", color: "#F2B544" },
+      { label: "DEX Screener", outside: "12m", permille: 293, share: "29%", color: "#C59CFF" },
+    ],
+    trackingLabel: "Tracked from TradingView, Binance and DEX Screener",
+    browserNote: "Only apps are counted. Turn on browser tracking to count charting sites too.",
+    browserBlocked: false,
+  },
+  shortLabel: "NY opens in 4h 02m",
+};
+
+export const tradingSettings: TradingSettings = {
+  zone: "Africa/Lagos",
+  market: "newYork",
+  days: [true, true, true, true, true, false, false],
+  nudge: true,
+  nudgeMinutes: 5,
+  trackBrowsers: false,
+  menubarCountdown: true,
+  sources: [
+    { label: "TradingView", apps: ["TradingView"], hosts: ["tradingview.com"] },
+    { label: "Binance", apps: ["Binance"], hosts: ["binance.com"] },
+    { label: "DEX Screener", apps: [], hosts: ["dexscreener.com"] },
+  ],
+};

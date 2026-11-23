@@ -18,6 +18,10 @@ use crate::ui::{self, UiAction};
 
 const TRAY_ID: &str = "main";
 
+fn now_i64() -> i64 {
+    i64::try_from(timer::now_ms()).unwrap_or(i64::MAX)
+}
+
 /// Halo's colours for a non-monochrome icon.
 const AMBER: [u8; 3] = [242, 181, 68];
 const SKY: [u8; 3] = [108, 182, 255];
@@ -54,7 +58,14 @@ impl MenuKey {
 
 fn shown(app: &AppHandle, s: &Snapshot) -> Shown {
     let prefs = crate::prefs::get(app);
-    let view = halo_menubar::view(s, prefs.menubar_options());
+    let mut view = halo_menubar::view(s, prefs.menubar_options());
+    // No session running: show the time to your trading window instead.
+    if s.status == Status::Idle
+        && prefs.menubar_shows == crate::prefs::MenubarShows::Timer
+        && let Some(label) = crate::trading::menubar_label(app, now_i64())
+    {
+        view.title = Some(label);
+    }
     let tint = (!prefs.menubar_monochrome).then(|| {
         if s.status != Status::Idle && (s.phase.is_break() || s.overflowing) {
             SKY

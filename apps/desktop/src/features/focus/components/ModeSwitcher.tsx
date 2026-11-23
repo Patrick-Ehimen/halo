@@ -24,7 +24,7 @@ export function ModeSwitcher({ value, disabled, onChange }: ModeSwitcherProps) {
             disabled={disabled && !on}
             onClick={() => onChange(p.id)}
             className={`h-9 rounded-lg px-3.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-              on ? "bg-control-selected text-text" : "text-text-secondary hover:text-text"
+              on ? "bg-control-selected text-focus" : "text-text-secondary hover:text-text"
             }`}
           >
             {p.label}

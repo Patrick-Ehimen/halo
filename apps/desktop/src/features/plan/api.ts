@@ -54,7 +54,7 @@ export const planApi = {
 
   createProject: (form: ProjectForm) => unwrap(commands.projectCreate(form)),
   updateProject: (id: string, form: ProjectForm) => unwrap(commands.projectUpdate(id, form)),
-  archiveProject: (id: string) => unwrap(commands.projectArchive(id)),
+  deleteProject: (id: string) => unwrap(commands.projectDelete(id)),
 
   createTask: (form: TaskForm) => unwrap(commands.taskCreate(form)),
   updateTask: (id: string, form: TaskForm) => unwrap(commands.taskUpdate(id, form)),
@@ -65,6 +65,9 @@ export const planApi = {
   /** `start` is local "HH:MM"; Rust places it on today. */
   createBlock: (taskId: string | null, title: string, start: string, minutes: number) =>
     unwrap(commands.blockCreate(taskId, title, start, minutes)),
+  /** Moves or resizes a block, keeping it on today. */
+  moveBlock: (id: string, start: string, minutes: number) =>
+    unwrap(commands.blockMove(id, start, minutes)),
   deleteBlock: (id: string) => unwrap(commands.blockDelete(id)),
 
   /** Starts a focus session on a task. */

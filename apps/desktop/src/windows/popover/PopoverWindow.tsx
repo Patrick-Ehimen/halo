@@ -3,6 +3,7 @@ import { appApi } from "../../features/app/api";
 import { SmallRing } from "../../features/focus/components/SmallRing";
 import { PRESETS, describe } from "../../features/focus/format";
 import { useFocusStore } from "../../features/focus/store";
+import { PopoverTrading } from "../../features/trading/components/PopoverTrading";
 
 function Chip({
   children,
@@ -44,6 +45,7 @@ export function PopoverWindow() {
   const actions = useFocusStore();
   const rootRef = useRef<HTMLDivElement>(null);
   const [miniShown, setMiniShown] = useState(false);
+  const [tab, setTab] = useState<"focus" | "trading">("focus");
 
   // Re-check each time the popover opens; the mini timer can change elsewhere.
   useEffect(() => {
@@ -94,128 +96,150 @@ export function PopoverWindow() {
           aria-label="Popover view"
           className="flex gap-0.5 rounded-control bg-control p-[3px]"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected="true"
-            className="h-9 flex-1 rounded-lg bg-control-selected text-[13px] font-medium"
-          >
-            Focus
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-disabled="true"
-            title="The trading desk arrives in a later phase"
-            className="h-9 flex-1 cursor-not-allowed rounded-lg text-[13px] font-medium text-text-muted"
-          >
-            Trading
-          </button>
+          {(
+            [
+              ["focus", "Focus"],
+              ["trading", "Trading"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={`h-9 flex-1 rounded-lg text-[13px] font-medium ${
+                tab === id
+                  ? `bg-control-selected ${id === "focus" ? "text-focus" : "text-shield"}`
+                  : "text-text-secondary hover:text-text"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        <section
-          aria-label="Current session"
-          className="rounded-card border border-card-border bg-card p-3.5"
-        >
-          {snapshot && view ? (
-            <>
-              <div className="flex items-center gap-3.5">
-                <SmallRing
-                  size={52}
-                  stroke={5}
-                  progressPermille={idle ? 0 : snapshot.progressPermille}
-                  accent={view.accent}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-text-secondary">
-                    {idle && !isBreak ? "Ready" : view.label}
-                  </p>
-                  <p
-                    role="timer"
-                    className="text-[34px] leading-tight font-light tracking-[-0.02em] tabular-nums"
-                  >
-                    {view.clock}
-                  </p>
-                  {isBreak ? (
-                    <p className="text-xs text-text-muted">{view.sub}</p>
-                  ) : (
-                    <>
-                      <p className="truncate text-[13px] text-text-secondary">
-                        {snapshot.intention || (idle ? "Pick a mode to start" : "No intention set")}
+        {tab === "trading" ? (
+          <PopoverTrading />
+        ) : (
+          <>
+            <section
+              aria-label="Current session"
+              className={`rounded-card border p-3.5 ${view?.accent === "break" ? "border-break/25 bg-break/8" : "border-focus/25 bg-[linear-gradient(135deg,rgba(242,181,68,0.14),rgba(242,181,68,0.04))]"}`}
+            >
+              {snapshot && view ? (
+                <>
+                  <div className="flex items-center gap-3.5">
+                    <SmallRing
+                      size={52}
+                      stroke={5}
+                      progressPermille={idle ? 0 : snapshot.progressPermille}
+                      accent={view.accent}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-xs font-semibold tracking-[0.04em] uppercase ${view.accent === "break" ? "text-break" : "text-focus"}`}
+                      >
+                        {idle && !isBreak ? "Ready" : view.label}
                       </p>
-                      <p className="text-xs text-text-muted tabular-nums">
-                        Session {current} of {snapshot.longBreakEvery}
+                      <p
+                        role="timer"
+                        className="text-[34px] leading-tight font-light tracking-[-0.02em] tabular-nums"
+                      >
+                        {view.clock}
                       </p>
-                    </>
-                  )}
-                </div>
-              </div>
+                      {isBreak ? (
+                        <p className="text-xs text-text-muted">{view.sub}</p>
+                      ) : (
+                        <>
+                          <p className="truncate text-[13px] text-text-secondary">
+                            {snapshot.intention ||
+                              (idle ? "Pick a mode to start" : "No intention set")}
+                          </p>
+                          <p className="text-xs text-text-muted tabular-nums">
+                            Session {current} of {snapshot.longBreakEvery}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
-              {!idle && (
-                <div className="mt-3 flex gap-2">
-                  {snapshot.status === "running" ? (
-                    <Chip
-                      primary
-                      accent={isBreak ? "break" : "focus"}
-                      onClick={() => void actions.pause()}
-                      disabled={!isBreak && snapshot.pausesLeft === 0}
-                    >
-                      Pause
-                    </Chip>
-                  ) : (
-                    <Chip
-                      primary
-                      accent={isBreak ? "break" : "focus"}
-                      onClick={() => void actions.resume()}
-                    >
-                      Resume
-                    </Chip>
+                  {!idle && (
+                    <div className="mt-3 flex gap-2">
+                      {snapshot.status === "running" ? (
+                        <Chip
+                          primary
+                          accent={isBreak ? "break" : "focus"}
+                          onClick={() => void actions.pause()}
+                          disabled={!isBreak && snapshot.pausesLeft === 0}
+                        >
+                          Pause
+                        </Chip>
+                      ) : (
+                        <Chip
+                          primary
+                          accent={isBreak ? "break" : "focus"}
+                          onClick={() => void actions.resume()}
+                        >
+                          Resume
+                        </Chip>
+                      )}
+                      {!isBreak && snapshot.kind !== "flowtime" && (
+                        <Chip onClick={() => void actions.extend(5)}>+5 min</Chip>
+                      )}
+                      <Chip onClick={() => void actions.end()}>
+                        {isBreak ? "Skip break" : "End"}
+                      </Chip>
+                    </div>
                   )}
-                  {!isBreak && snapshot.kind !== "flowtime" && (
-                    <Chip onClick={() => void actions.extend(5)}>+5 min</Chip>
+                  {idle && isBreak && (
+                    <div className="mt-3 flex gap-2">
+                      <Chip primary accent="break" onClick={() => void actions.startPending()}>
+                        Start break
+                      </Chip>
+                    </div>
                   )}
-                  <Chip onClick={() => void actions.end()}>{isBreak ? "Skip break" : "End"}</Chip>
-                </div>
+                </>
+              ) : (
+                <p className="text-[13px] text-text-muted">{error ?? "Loading timer"}</p>
               )}
-              {idle && isBreak && (
-                <div className="mt-3 flex gap-2">
-                  <Chip primary accent="break" onClick={() => void actions.startPending()}>
-                    Start break
-                  </Chip>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-[13px] text-text-muted">{error ?? "Loading timer"}</p>
-          )}
-        </section>
+            </section>
 
-        {idle && (
-          <section aria-label="Quick start">
-            <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-text-muted uppercase">
-              Quick start
-            </p>
-            <div className="flex gap-2">
-              {PRESETS.map((p) => (
-                <Chip key={p.id} onClick={() => void actions.start(p.id, "")}>
-                  {p.label}
-                </Chip>
-              ))}
-            </div>
-          </section>
+            {idle && (
+              <section aria-label="Quick start">
+                <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-focus uppercase">
+                  Quick start
+                </p>
+                <div className="flex gap-2">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => void actions.start(p.id, "")}
+                      className="h-11 flex-1 rounded-control border border-focus/30 bg-focus/10 px-2 text-[13px] font-medium text-[#FFE2A6] transition-colors hover:bg-focus/18"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section
+              aria-label="Today"
+              className="flex items-center justify-between rounded-card border border-card-border bg-card px-3.5 py-3"
+            >
+              <span className="flex items-center gap-2 text-[13px] text-text-secondary">
+                <span className="size-2 rounded-full bg-focus" aria-hidden="true" />
+                Today
+              </span>
+              <span className="text-[13px] font-semibold text-focus tabular-nums">
+                {today?.focusedLabel ?? "0m"} · {today?.sessions ?? 0}{" "}
+                {today?.sessions === 1 ? "session" : "sessions"}
+              </span>
+            </section>
+          </>
         )}
-
-        <section
-          aria-label="Today"
-          className="flex items-center justify-between rounded-card border border-card-border bg-card px-3.5 py-3"
-        >
-          <span className="text-[13px] text-text-secondary">Today</span>
-          <span className="text-[13px] font-medium tabular-nums">
-            {today?.focusedLabel ?? "0m"} · {today?.sessions ?? 0}{" "}
-            {today?.sessions === 1 ? "session" : "sessions"}
-          </span>
-        </section>
 
         {error && snapshot && (
           <p role="status" className="text-xs text-alert">
@@ -225,15 +249,19 @@ export function PopoverWindow() {
 
         <div className="flex gap-2 border-t border-hairline pt-3">
           <Chip onClick={() => void appApi.openMainWindow()}>Open Halo</Chip>
-          <Chip
-            onClick={() => {
-              const next = !miniShown;
-              setMiniShown(next);
-              void appApi.setMiniVisible(next).catch(() => setMiniShown(!next));
-            }}
-          >
-            {miniShown ? "Hide mini" : "Mini timer"}
-          </Chip>
+          {tab === "trading" ? (
+            <Chip onClick={() => void appApi.requestUi("openTrading")}>Trading desk</Chip>
+          ) : (
+            <Chip
+              onClick={() => {
+                const next = !miniShown;
+                setMiniShown(next);
+                void appApi.setMiniVisible(next).catch(() => setMiniShown(!next));
+              }}
+            >
+              {miniShown ? "Hide mini" : "Mini timer"}
+            </Chip>
+          )}
           <button
             type="button"
             onClick={() => void appApi.quit()}

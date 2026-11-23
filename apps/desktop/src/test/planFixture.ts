@@ -51,9 +51,18 @@ export const plan: PlanView = {
       name: "meridian-rs",
       color: "#F2B544",
       openTasks: 2,
+      description: "",
       sessionsLeft: 3,
     },
-    { id: "p2", goalId: null, name: "Errands", color: "#7FD1C9", openTasks: 1, sessionsLeft: 1 },
+    {
+      id: "p2",
+      goalId: null,
+      name: "Errands",
+      color: "#7FD1C9",
+      openTasks: 1,
+      sessionsLeft: 1,
+      description: "",
+    },
   ],
   today: [
     {
@@ -73,6 +82,8 @@ export const plan: PlanView = {
       recurrenceLabel: null,
       completed: false,
       overdue: false,
+      endTime: null,
+      description: "",
     },
     {
       id: "t2",
@@ -91,6 +102,8 @@ export const plan: PlanView = {
       recurrenceLabel: "Repeats daily",
       completed: false,
       overdue: false,
+      endTime: null,
+      description: "",
     },
   ],
   open: [],
@@ -103,6 +116,8 @@ export const plan: PlanView = {
       startMinute: 840,
       endMinute: 940,
       label: "14:00–15:40",
+      startTime: "14:00",
+      minutes: 100,
     },
   ],
 };

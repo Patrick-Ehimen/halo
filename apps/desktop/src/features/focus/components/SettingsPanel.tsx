@@ -76,7 +76,7 @@ export function SettingsPanel({
     <div
       role="dialog"
       aria-label="Timer settings"
-      className="absolute top-full right-0 z-20 mt-2 w-[360px] rounded-popover border border-white/10 bg-glass-popover p-4 shadow-popover backdrop-blur-[40px]"
+      className="absolute top-full right-0 z-20 mt-2 max-h-[calc(100vh-7rem)] w-[360px] overflow-y-auto overscroll-contain rounded-popover border border-white/10 bg-glass-popover p-4 shadow-popover backdrop-blur-[40px]"
     >
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Timer settings</h2>
@@ -189,7 +189,7 @@ export function SettingsPanel({
                     onClick={() => updatePrefs({ menubarShows: value })}
                     className={`h-9 rounded-lg px-3 text-[13px] font-medium ${
                       prefs.menubarShows === value
-                        ? "bg-control-selected text-text"
+                        ? "bg-control-selected text-focus"
                         : "text-text-secondary hover:text-text"
                     }`}
                   >

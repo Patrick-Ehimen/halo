@@ -18,6 +18,9 @@ pub struct TaskInput<'a> {
     pub due_at: Option<i64>,
     /// `daily`, `weekdays` or `weekly:MO,WE`.
     pub recurrence: Option<&'a str>,
+    pub description: &'a str,
+    /// Unix ms it ends, after `due_at`.
+    pub ends_at: Option<i64>,
 }
 
 impl<'a> TaskInput<'a> {
@@ -55,13 +58,16 @@ pub struct Task {
     pub completed_at: Option<i64>,
     /// Saved sessions started from this task.
     pub done_sessions: u32,
+    pub description: String,
+    pub ends_at: Option<i64>,
 }
 
 pub fn create(conn: &Connection, t: &TaskInput<'_>, now: i64) -> Result<String> {
     Ok(conn.query_row(
         "INSERT INTO tasks (project_id, milestone_id, parent_id, title, estimate_sessions,
-                            planned_on, due_at, recurrence, position, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
+                            planned_on, due_at, recurrence, description, ends_at,
+                            position, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?10, ?11,
                  (SELECT COALESCE(MAX(position), 0) + 1 FROM tasks), ?9, ?9)
          RETURNING id",
         params![
@@ -73,7 +79,9 @@ pub fn create(conn: &Connection, t: &TaskInput<'_>, now: i64) -> Result<String> 
             t.planned_on,
             t.due_at,
             t.recurrence,
-            now
+            now,
+            t.description,
+            t.ends_at
         ],
         |r| r.get(0),
     )?)
@@ -84,6 +92,7 @@ pub fn update(conn: &Connection, id: &str, t: &TaskInput<'_>, now: i64) -> Resul
     conn.execute(
         "UPDATE tasks SET project_id = ?2, milestone_id = ?3, title = ?4, estimate_sessions = ?5,
                           planned_on = ?6, due_at = ?7, recurrence = ?8,
+                          description = ?10, ends_at = ?11,
                           updated_at = ?9, synced_at = NULL
          WHERE id = ?1",
         params![
@@ -95,7 +104,9 @@ pub fn update(conn: &Connection, id: &str, t: &TaskInput<'_>, now: i64) -> Resul
             t.planned_on,
             t.due_at,
             t.recurrence,
-            now
+            now,
+            t.description,
+            t.ends_at
         ],
     )?;
     Ok(())
@@ -117,7 +128,19 @@ pub fn reopen(conn: &Connection, id: &str, now: i64) -> Result<()> {
     Ok(())
 }
 
+/// Deletes a task with its subtasks and time blocks. Sessions stay, for stats.
 pub fn delete(conn: &Connection, id: &str, now: i64) -> Result<()> {
+    let ids = |sql: &str| -> Result<Vec<String>> {
+        let mut stmt = conn.prepare(sql)?;
+        let rows = stmt.query_map([id], |r| r.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<String>>>()?)
+    };
+    for sub in ids("SELECT id FROM tasks WHERE parent_id = ?1 AND deleted_at IS NULL")? {
+        delete(conn, &sub, now)?;
+    }
+    for block in ids("SELECT id FROM time_blocks WHERE task_id = ?1 AND deleted_at IS NULL")? {
+        crate::soft_or_hard_delete(conn, "time_blocks", &block, now)?;
+    }
     crate::soft_or_hard_delete(conn, "tasks", id, now)
 }
 
@@ -173,7 +196,8 @@ pub fn goal_estimates(conn: &Connection, goal_id: &str) -> Result<(u32, u32)> {
 const SELECT: &str = "SELECT t.id, t.project_id, t.milestone_id, t.parent_id, t.title,
         t.estimate_sessions, t.planned_on, t.due_at, t.recurrence, t.completed_at,
         (SELECT COUNT(*) FROM sessions s
-         WHERE s.task_id = t.id AND s.ended_at IS NOT NULL AND s.deleted_at IS NULL)
+         WHERE s.task_id = t.id AND s.ended_at IS NOT NULL AND s.deleted_at IS NULL),
+        t.description, t.ends_at
     FROM tasks t";
 
 fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
@@ -189,6 +213,8 @@ fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
         recurrence: r.get(8)?,
         completed_at: r.get(9)?,
         done_sessions: r.get(10)?,
+        description: r.get(11)?,
+        ends_at: r.get(12)?,
     })
 }
 
@@ -334,6 +360,7 @@ mod tests {
                 name: "p",
                 color: "#fff",
                 goal_id: Some(&g),
+                description: "",
             },
             1,
         )
@@ -358,5 +385,30 @@ mod tests {
         .unwrap();
         crate::test_session(&conn, &a, 1);
         assert_eq!(goal_estimates(&conn, &g).unwrap(), (10, 1));
+    }
+
+    #[test]
+    fn delete_takes_subtasks_and_blocks_with_it() {
+        let conn = test_db();
+        conn.execute_batch(
+            "INSERT INTO tasks (id, title, created_at, updated_at, synced_at)
+               VALUES ('p', 'Parent', 1, 1, 2), ('c', 'Child', 1, 1, 2);
+             UPDATE tasks SET parent_id = 'p' WHERE id = 'c';
+             INSERT INTO time_blocks (id, task_id, title, starts_at, ends_at, kind, updated_at, synced_at)
+               VALUES ('b', 'p', 'Parent', 0, 1, 'focus', 1, 2);",
+        )
+        .unwrap();
+
+        delete(&conn, "p", 5).unwrap();
+
+        let live: i64 = conn
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL)
+                      + (SELECT COUNT(*) FROM time_blocks WHERE deleted_at IS NULL)",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(live, 0);
     }
 }

@@ -12,6 +12,8 @@ use crate::error::Result;
 pub enum UiAction {
     OpenSettings,
     LogSession,
+    /// Show the trading desk.
+    OpenTrading,
 }
 
 /// Asks the main window to open a panel. Emitted after the window is shown.

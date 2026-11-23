@@ -11,6 +11,7 @@ export type PaletteAction =
   | { type: "openMain" }
   | { type: "openSettings" }
   | { type: "logSession" }
+  | { type: "openTrading" }
   | { type: "startTask"; taskId: string }
   | { type: "addTask"; text: string };
 
@@ -110,6 +111,7 @@ export function paletteItems(
     { id: "open", label: "Open Halo", hint: "", action: { type: "openMain" } },
     { id: "settings", label: "Timer settings", hint: "⌘,", action: { type: "openSettings" } },
     { id: "log", label: "Log a missed session", hint: "", action: { type: "logSession" } },
+    { id: "trading", label: "Open Trading desk", hint: "", action: { type: "openTrading" } },
   );
   if (!s || (idle && onFocus)) {
     for (const t of tasks) {

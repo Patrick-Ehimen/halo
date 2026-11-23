@@ -11,17 +11,12 @@ export function SmallRing({ size, progressPermille, accent, stroke = 4 }: SmallR
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const color = accent === "focus" ? "var(--halo-focus)" : "var(--halo-break)";
+  // The track carries a hint of the accent, so an idle ring still has colour.
+  const track = accent === "focus" ? "rgba(242,181,68,0.16)" : "rgba(108,182,255,0.16)";
   const offset = c * (1 - Math.min(Math.max(progressPermille, 0), 1000) / 1000);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth={stroke}
-      />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
       <circle
         cx={size / 2}
         cy={size / 2}

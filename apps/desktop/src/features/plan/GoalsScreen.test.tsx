@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
     deleteMilestone: vi.fn(),
     createProject: vi.fn(),
     updateProject: vi.fn(),
-    archiveProject: vi.fn(),
+    deleteProject: vi.fn(),
     startTask: vi.fn(),
   },
   timerApi: {
