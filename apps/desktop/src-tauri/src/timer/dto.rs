@@ -13,6 +13,23 @@ pub enum PresetId {
     Flowtime,
 }
 
+/// An answer to "Still on it?".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum CheckInResponse {
+    Focused,
+    Drifted,
+}
+
+impl From<CheckInResponse> for halo_store::check_ins::Response {
+    fn from(r: CheckInResponse) -> Self {
+        match r {
+            CheckInResponse::Focused => halo_store::check_ins::Response::Focused,
+            CheckInResponse::Drifted => halo_store::check_ins::Response::Drifted,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum TimerPhase {
@@ -48,6 +65,13 @@ pub struct TimerSettings {
     /// `null` means unlimited.
     pub pause_limit: Option<u32>,
     pub long_break_every: u32,
+    /// "Still on it?" every this many minutes; `null` turns check-ins off.
+    #[serde(default = "default_check_in_minutes")]
+    pub check_in_minutes: Option<u32>,
+}
+
+fn default_check_in_minutes() -> Option<u32> {
+    Some(15)
 }
 
 impl From<Config> for TimerSettings {
@@ -58,6 +82,9 @@ impl From<Config> for TimerSettings {
             auto_start_focus: c.auto_start_focus,
             pause_limit: c.pause_limit,
             long_break_every: c.long_break_every,
+            check_in_minutes: c
+                .check_in_every_ms
+                .map(|ms| u32::try_from(ms / halo_timer::MINUTE).unwrap_or(u32::MAX)),
         }
     }
 }
@@ -70,6 +97,9 @@ impl From<TimerSettings> for Config {
             auto_start_focus: s.auto_start_focus,
             pause_limit: s.pause_limit,
             long_break_every: s.long_break_every,
+            check_in_every_ms: s
+                .check_in_minutes
+                .map(|m| u64::from(m) * halo_timer::MINUTE),
         }
     }
 }
@@ -175,6 +205,7 @@ pub enum TimerPhaseEvent {
     GoalReached,
     FocusEnded { completed: bool, focused_ms: u32 },
     BreakEnded { skipped: bool },
+    CheckInDue,
 }
 
 impl TimerPhaseEvent {
@@ -189,6 +220,7 @@ impl TimerPhaseEvent {
                 focused_ms: ms(s.focused_ms),
             },
             Transition::BreakEnded { skipped } => TimerPhaseEvent::BreakEnded { skipped },
+            Transition::CheckInDue => TimerPhaseEvent::CheckInDue,
         }
     }
 }

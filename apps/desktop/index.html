@@ -26,6 +26,10 @@
           #0b0c10;
         transition: opacity 320ms ease;
       }
+      html.is-transparent,
+      html.is-transparent body {
+        background: transparent;
+      }
       #splash.is-done {
         opacity: 0;
         pointer-events: none;
@@ -106,6 +110,18 @@
       </svg>
       <span class="word">halo</span>
     </div>
+    <script>
+      // Only the main window gets the splash and the solid background; the
+      // popover, mini timer and overlays are transparent windows.
+      (() => {
+        const label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label ?? "main";
+        document.documentElement.dataset.window = label;
+        if (label !== "main") {
+          document.getElementById("splash")?.remove();
+          document.documentElement.classList.add("is-transparent");
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script>
       // Never leave the splash up if the app fails to start.

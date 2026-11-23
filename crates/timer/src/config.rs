@@ -89,6 +89,8 @@ pub struct Config {
     pub auto_start_focus: bool,
     /// Pauses allowed per focus session. `None` means unlimited.
     pub pause_limit: Option<u32>,
+    /// Ask "Still on it?" every this many ms of focus. `None` turns it off.
+    pub check_in_every_ms: Option<u64>,
 }
 
 impl Default for Config {
@@ -99,12 +101,15 @@ impl Default for Config {
             auto_start_breaks: true,
             auto_start_focus: false,
             pause_limit: Some(2),
+            check_in_every_ms: Some(15 * MINUTE),
         }
     }
 }
 
 /// Allowed range for [`Config::long_break_every`].
 pub const LONG_BREAK_EVERY: std::ops::RangeInclusive<u32> = 2..=8;
+/// Allowed check-in interval, in whole minutes.
+pub const CHECK_IN_EVERY_MIN: std::ops::RangeInclusive<u64> = 5..=60;
 /// Highest pause limit; above it, use unlimited (`None`).
 pub const MAX_PAUSE_LIMIT: u32 = 5;
 
@@ -114,6 +119,14 @@ impl Config {
         if !LONG_BREAK_EVERY.contains(&self.long_break_every) {
             return Err(crate::Error::Invalid(
                 "Long break interval must be between 2 and 8 sessions",
+            ));
+        }
+        if self
+            .check_in_every_ms
+            .is_some_and(|ms| !CHECK_IN_EVERY_MIN.contains(&(ms / MINUTE)) || ms % MINUTE != 0)
+        {
+            return Err(crate::Error::Invalid(
+                "Check-ins must be every 5 to 60 minutes, or off",
             ));
         }
         if self.pause_limit.is_some_and(|n| n > MAX_PAUSE_LIMIT) {
@@ -166,6 +179,18 @@ mod tests {
             ..Config::default()
         };
         assert!(too_many_pauses.validate().is_err());
+        for bad in [MINUTE, 61 * MINUTE, 15 * MINUTE + 1] {
+            let c = Config {
+                check_in_every_ms: Some(bad),
+                ..Config::default()
+            };
+            assert!(c.validate().is_err(), "{bad}");
+        }
+        let off = Config {
+            check_in_every_ms: None,
+            ..Config::default()
+        };
+        assert_eq!(off.validate(), Ok(()));
         let unlimited = Config {
             pause_limit: None,
             long_break_every: 8,

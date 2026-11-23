@@ -1,12 +1,21 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for Halo's windows",
+  "windows": [
+    "main",
+    "tray-popover",
+    "mini",
+    "palette",
+    "check-in",
+    "break-overlay-*"
+  ],
   "permissions": [
     "core:default",
     "global-shortcut:default",
     "notification:default",
-    "autostart:default"
+    "autostart:default",
+    "core:window:allow-set-size",
+    "core:window:allow-start-dragging"
   ]
 }

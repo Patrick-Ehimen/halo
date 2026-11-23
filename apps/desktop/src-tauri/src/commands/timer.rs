@@ -5,7 +5,7 @@ use tauri::{AppHandle, State};
 
 use crate::error::{Error, IpcError};
 use crate::state::AppState;
-use crate::timer::{self, PresetId, SessionKind, TimerSettings, TimerSnapshot};
+use crate::timer::{self, CheckInResponse, PresetId, SessionKind, TimerSettings, TimerSnapshot};
 
 #[tauri::command]
 #[specta::specta]
@@ -101,6 +101,13 @@ fn parse_local(value: &str) -> Option<u64> {
     let naive = NaiveDateTime::parse_from_str(value.trim(), "%Y-%m-%dT%H:%M").ok()?;
     let local = Local.from_local_datetime(&naive).earliest()?;
     u64::try_from(local.timestamp_millis()).ok()
+}
+
+/// Answers "Still on it?". "I drifted" also counts a distraction.
+#[tauri::command]
+#[specta::specta]
+pub fn check_in(app: AppHandle, response: CheckInResponse) -> Result<(), IpcError> {
+    Ok(timer::record_check_in(&app, response)?)
 }
 
 #[derive(Debug, Serialize, Type)]

@@ -6,11 +6,14 @@ mod dto;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use halo_timer::{Config, Millis, Preset, SessionSummary, Timer, Transition};
+use halo_timer::{Config, Millis, Phase, Preset, SessionSummary, Timer, Transition};
 use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 
-pub use dto::{PresetId, SessionKind, TimerPhaseEvent, TimerSettings, TimerSnapshot, TimerTick};
+pub use dto::{
+    CheckInResponse, PresetId, SessionKind, TimerPhaseEvent, TimerSettings, TimerSnapshot,
+    TimerTick,
+};
 
 use crate::error::{Error, Result};
 use crate::state::AppState;
@@ -26,6 +29,12 @@ const SETTINGS_KEY: &str = "timer";
 pub struct LiveTimer {
     engine: Timer,
     intention: String,
+    /// The running focus session's row, written when it started.
+    session_id: Option<String>,
+    /// Minutes of focus already saved to that row.
+    saved_minutes: u64,
+    /// When the open check-in was asked.
+    check_in_at: Option<Millis>,
 }
 
 impl LiveTimer {
@@ -33,6 +42,9 @@ impl LiveTimer {
         LiveTimer {
             engine: Timer::new(Config::default()),
             intention: String::new(),
+            session_id: None,
+            saved_minutes: 0,
+            check_in_at: None,
         }
     }
 }
@@ -51,16 +63,17 @@ where
 {
     let state = app.state::<AppState>();
     let now = now_ms();
-    let (transitions, snapshot) = {
+    let (transitions, snapshot, engine) = {
         let mut live = state.timer()?;
         let transitions = action(&mut live, now)?;
-        save_finished(&state, &live, &transitions)?;
+        persist(&state, &mut live, &transitions, now)?;
         (
             transitions,
             TimerSnapshot::new(&live.engine, &live.intention, now),
+            live.engine.snapshot(now),
         )
     };
-    announce(app, &transitions, &snapshot)?;
+    announce(app, &transitions, &snapshot, &engine)?;
     Ok(snapshot)
 }
 
@@ -130,6 +143,11 @@ fn log_manual_at(
 ) -> Result<()> {
     let summary = halo_timer::manual_session(kind.into(), started_at, minutes, now)?;
     save_session(state, &summary, intention.trim(), "manual")
+}
+
+/// The engine's own snapshot, for Rust-side surfaces like the menu bar.
+pub fn engine_snapshot(state: &AppState) -> Result<halo_timer::Snapshot> {
+    Ok(state.timer()?.engine.snapshot(now_ms()))
 }
 
 pub fn snapshot(app: &AppHandle) -> Result<TimerSnapshot> {
@@ -202,13 +220,15 @@ pub fn spawn_driver(app: AppHandle) {
 fn drive_once(app: &AppHandle, last_shown: &mut Option<(u32, String)>) -> Result<()> {
     let state = app.state::<AppState>();
     let now = now_ms();
-    let (transitions, snapshot) = {
+    let (transitions, snapshot, engine) = {
         let mut live = state.timer()?;
         let transitions = live.engine.tick(now);
-        save_finished(&state, &live, &transitions)?;
+        persist(&state, &mut live, &transitions, now)?;
+        save_progress(&state, &mut live, now)?;
         (
             transitions,
             TimerSnapshot::new(&live.engine, &live.intention, now),
+            live.engine.snapshot(now),
         )
     };
     // Emit when the shown second or the state changes.
@@ -217,15 +237,114 @@ fn drive_once(app: &AppHandle, last_shown: &mut Option<(u32, String)>) -> Result
         return Ok(());
     }
     *last_shown = Some(shown);
-    announce(app, &transitions, &snapshot)
+    announce(app, &transitions, &snapshot, &engine)
 }
 
-fn save_finished(state: &AppState, live: &LiveTimer, transitions: &[Transition]) -> Result<()> {
+/// Keeps the database in step with the engine: a row when focus starts, its
+/// final numbers when it ends, and the time of any check-in asked.
+fn persist(
+    state: &AppState,
+    live: &mut LiveTimer,
+    transitions: &[Transition],
+    now: Millis,
+) -> Result<()> {
     for t in transitions {
-        if let Transition::FocusEnded(summary) = t {
-            save_session(state, summary, &live.intention, "timer")?;
+        match t {
+            Transition::PhaseStarted(Phase::Focus) => {
+                let s = live.engine.snapshot(now);
+                let row = halo_store::sessions::StartedSession {
+                    kind: s.kind.as_str(),
+                    planned_secs: secs(s.planned_ms),
+                    started_at: ms_i64(s.started_at.unwrap_or(now)),
+                    intention: &live.intention,
+                };
+                let conn = state.db()?;
+                live.session_id = Some(halo_store::sessions::start(&conn, &row, ms_i64(now))?);
+                live.saved_minutes = 0;
+            }
+            Transition::FocusEnded(summary) => {
+                live.check_in_at = None;
+                match live.session_id.take() {
+                    Some(id) => finish_session(state, &id, summary, now)?,
+                    // Started before this run kept rows (shouldn't happen): save it whole.
+                    None => save_session(state, summary, &live.intention, "timer")?,
+                }
+            }
+            Transition::CheckInDue => live.check_in_at = Some(now),
+            _ => {}
         }
     }
+    Ok(())
+}
+
+/// Saves a running session's progress about once a minute, so a crash or a
+/// forced quit loses at most a minute of it.
+fn save_progress(state: &AppState, live: &mut LiveTimer, now: Millis) -> Result<()> {
+    let Some(id) = live.session_id.clone() else {
+        return Ok(());
+    };
+    let s = live.engine.snapshot(now);
+    let minutes = s.elapsed_ms / halo_timer::MINUTE;
+    if s.phase != Phase::Focus || minutes <= live.saved_minutes {
+        return Ok(());
+    }
+    let conn = state.db()?;
+    halo_store::sessions::update_progress(&conn, &id, &progress_of(&s), ms_i64(now))?;
+    live.saved_minutes = minutes;
+    Ok(())
+}
+
+fn progress_of(s: &halo_timer::Snapshot) -> halo_store::sessions::Progress {
+    let flowtime = s.kind == halo_timer::Kind::Flowtime;
+    halo_store::sessions::Progress {
+        planned_secs: if flowtime { 0 } else { secs(s.planned_ms) },
+        focused_secs: secs(s.elapsed_ms),
+        overflow_secs: if flowtime {
+            0
+        } else {
+            secs(s.elapsed_ms.saturating_sub(s.planned_ms))
+        },
+        pauses: s.pauses,
+    }
+}
+
+fn finish_session(state: &AppState, id: &str, s: &SessionSummary, now: Millis) -> Result<()> {
+    let conn = state.db()?;
+    // Sessions under a minute are accidental starts; don't keep them.
+    if s.focused_ms < halo_timer::MINUTE {
+        halo_store::sessions::discard(&conn, id, ms_i64(now))?;
+        return Ok(());
+    }
+    let progress = halo_store::sessions::Progress {
+        planned_secs: secs(s.planned_ms),
+        focused_secs: secs(s.focused_ms),
+        overflow_secs: secs(s.overflow_ms),
+        pauses: s.pauses,
+    };
+    halo_store::sessions::finish(&conn, id, ms_i64(s.ended_at), &progress, ms_i64(now))?;
+    Ok(())
+}
+
+/// Saves the answer to the open check-in and closes the card.
+pub fn record_check_in(app: &AppHandle, response: CheckInResponse) -> Result<()> {
+    save_check_in(&app.state::<AppState>(), response, now_ms())?;
+    crate::windows::hide_check_in(app)
+}
+
+fn save_check_in(state: &AppState, response: CheckInResponse, now: Millis) -> Result<()> {
+    let mut live = state.timer()?;
+    if let Some(id) = live.session_id.clone() {
+        let at = live.check_in_at.take().unwrap_or(now);
+        let conn = state.db()?;
+        halo_store::check_ins::record(&conn, &id, ms_i64(at), response.into(), ms_i64(now))?;
+    }
+    Ok(())
+}
+
+/// Closes sessions a crash or forced quit left open. Called at startup.
+pub fn close_abandoned(state: &AppState) -> Result<()> {
+    let conn = state.db()?;
+    halo_store::sessions::close_abandoned(&conn, ms_i64(now_ms()))?;
     Ok(())
 }
 
@@ -234,7 +353,6 @@ fn save_session(state: &AppState, s: &SessionSummary, intention: &str, source: &
     if s.focused_ms < halo_timer::MINUTE {
         return Ok(());
     }
-    let secs = |ms: u64| u32::try_from(ms / 1000).unwrap_or(u32::MAX);
     let ms = ms_i64;
     let row = halo_store::sessions::NewSession {
         kind: s.kind.as_str(),
@@ -252,12 +370,48 @@ fn save_session(state: &AppState, s: &SessionSummary, intention: &str, source: &
     Ok(())
 }
 
-fn announce(app: &AppHandle, transitions: &[Transition], snapshot: &TimerSnapshot) -> Result<()> {
+fn announce(
+    app: &AppHandle,
+    transitions: &[Transition],
+    snapshot: &TimerSnapshot,
+    engine: &halo_timer::Snapshot,
+) -> Result<()> {
     for t in transitions {
         TimerPhaseEvent::from_transition(t).emit(app)?;
     }
     TimerTick(snapshot.clone()).emit(app)?;
+    if let Err(e) = crate::tray::sync(app, engine) {
+        eprintln!("menu bar: {e}");
+    }
+    if !transitions.is_empty() {
+        crate::notify::on_transitions(app, transitions, engine.planned_ms);
+        if let Err(e) = surfaces(app, transitions) {
+            eprintln!("windows: {e}");
+        }
+    }
     Ok(())
+}
+
+/// Opens and closes the break overlay and the check-in card as phases change.
+fn surfaces(app: &AppHandle, transitions: &[Transition]) -> Result<()> {
+    for t in transitions {
+        match t {
+            Transition::PhaseStarted(Phase::ShortBreak | Phase::LongBreak) => {
+                crate::overlay::open(app)?;
+            }
+            Transition::PhaseStarted(Phase::Focus) | Transition::BreakEnded { .. } => {
+                crate::overlay::close(app)?;
+            }
+            Transition::CheckInDue => crate::windows::show_check_in(app)?,
+            Transition::FocusEnded(_) => crate::windows::hide_check_in(app)?,
+            Transition::GoalReached => {}
+        }
+    }
+    Ok(())
+}
+
+fn secs(ms: u64) -> u32 {
+    u32::try_from(ms / 1000).unwrap_or(u32::MAX)
 }
 
 fn ms_i64(t: Millis) -> i64 {
@@ -271,6 +425,15 @@ impl From<halo_timer::Error> for Error {
 }
 
 impl PresetId {
+    /// The preset to restart from a session kind (custom falls back to Pomodoro).
+    pub fn from_kind(kind: halo_timer::Kind) -> Self {
+        match kind {
+            halo_timer::Kind::Deep => PresetId::Deep,
+            halo_timer::Kind::Flowtime => PresetId::Flowtime,
+            halo_timer::Kind::Pomodoro | halo_timer::Kind::Custom => PresetId::Pomodoro,
+        }
+    }
+
     fn preset(self) -> Preset {
         match self {
             PresetId::Pomodoro => Preset::POMODORO,
@@ -308,6 +471,7 @@ mod tests {
             auto_start_focus: true,
             pause_limit: None,
             long_break_every: 3,
+            check_in_minutes: Some(20),
         };
         save_raw(&state, &serde_json::to_string(&saved).unwrap());
         load_settings(&state).unwrap();
@@ -369,5 +533,118 @@ mod tests {
         let now = 1_700_000_000_000;
         let err = log_manual_at(&state, SessionKind::Deep, now, 50, "", now).unwrap_err();
         assert_eq!(err.to_string(), "That session hasn't ended yet");
+    }
+
+    #[test]
+    fn settings_saved_before_check_ins_existed_still_load() {
+        let state = state();
+        save_raw(
+            &state,
+            r#"{"overflow":false,"autoStartBreaks":true,"autoStartFocus":false,"pauseLimit":2,"longBreakEvery":4}"#,
+        );
+        load_settings(&state).unwrap();
+        let c = config(&state);
+        assert!(!c.overflow);
+        assert_eq!(c.check_in_every_ms, Some(15 * halo_timer::MINUTE));
+    }
+
+    /// Runs one engine step the way the app does, persisting what happened.
+    fn step(state: &AppState, now: Millis, f: impl FnOnce(&mut LiveTimer) -> Vec<Transition>) {
+        let mut live = state.timer().unwrap();
+        let transitions = f(&mut live);
+        persist(state, &mut live, &transitions, now).unwrap();
+        save_progress(state, &mut live, now).unwrap();
+    }
+
+    fn query_u32(state: &AppState, sql: &str) -> u32 {
+        state
+            .db()
+            .unwrap()
+            .query_row(sql, [], |r| r.get(0))
+            .unwrap()
+    }
+
+    fn query_i64(state: &AppState, sql: &str) -> i64 {
+        state
+            .db()
+            .unwrap()
+            .query_row(sql, [], |r| r.get(0))
+            .unwrap()
+    }
+
+    fn query_text(state: &AppState, sql: &str) -> String {
+        state
+            .db()
+            .unwrap()
+            .query_row(sql, [], |r| r.get(0))
+            .unwrap()
+    }
+
+    const T0: Millis = 1_700_000_000_000;
+    const MIN: Millis = halo_timer::MINUTE;
+
+    #[test]
+    fn a_session_is_written_at_start_and_finished_at_the_end() {
+        let state = state();
+        step(&state, T0, |l| {
+            l.intention = "Write tests".into();
+            l.engine.start_focus(Preset::DEEP, T0).unwrap()
+        });
+        assert_eq!(
+            query_u32(
+                &state,
+                "SELECT COUNT(*) FROM sessions WHERE ended_at IS NULL"
+            ),
+            1
+        );
+
+        step(&state, T0 + 3 * MIN, |l| l.engine.tick(T0 + 3 * MIN));
+        assert_eq!(query_u32(&state, "SELECT focused_secs FROM sessions"), 180);
+
+        step(&state, T0 + 10 * MIN, |l| {
+            l.engine.end(T0 + 10 * MIN).unwrap()
+        });
+        assert_eq!(
+            query_i64(&state, "SELECT ended_at FROM sessions"),
+            (T0 + 10 * MIN) as i64
+        );
+        assert_eq!(query_u32(&state, "SELECT focused_secs FROM sessions"), 600);
+        assert_eq!(
+            query_text(&state, "SELECT intention FROM sessions"),
+            "Write tests"
+        );
+    }
+
+    #[test]
+    fn an_accidental_start_leaves_no_row() {
+        let state = state();
+        step(&state, T0, |l| {
+            l.engine.start_focus(Preset::DEEP, T0).unwrap()
+        });
+        step(&state, T0 + 20_000, |l| l.engine.end(T0 + 20_000).unwrap());
+        assert_eq!(query_u32(&state, "SELECT COUNT(*) FROM sessions"), 0);
+    }
+
+    #[test]
+    fn check_ins_are_saved_against_the_running_session() {
+        let state = state();
+        state.timer().unwrap().engine.set_config(Config {
+            check_in_every_ms: Some(15 * MIN),
+            ..Config::default()
+        });
+        step(&state, T0, |l| {
+            l.engine.start_focus(Preset::DEEP, T0).unwrap()
+        });
+        step(&state, T0 + 15 * MIN, |l| l.engine.tick(T0 + 15 * MIN));
+        save_check_in(&state, CheckInResponse::Drifted, T0 + 15 * MIN + 5_000).unwrap();
+
+        assert_eq!(
+            query_i64(
+                &state,
+                "SELECT at FROM check_ins WHERE response = 'drifted'"
+            ),
+            (T0 + 15 * MIN) as i64
+        );
+        assert_eq!(query_u32(&state, "SELECT distractions FROM sessions"), 1);
     }
 }

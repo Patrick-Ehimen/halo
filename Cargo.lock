@@ -1553,6 +1553,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-tz",
+ "halo-menubar",
  "halo-store",
  "halo-timer",
  "serde",
@@ -1567,6 +1568,13 @@ dependencies = [
  "tauri-specta",
  "thiserror 2.0.21",
  "tokio",
+]
+
+[[package]]
+name = "halo-menubar"
+version = "0.1.0"
+dependencies = [
+ "halo-timer",
 ]
 
 [[package]]

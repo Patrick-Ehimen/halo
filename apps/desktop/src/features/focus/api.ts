@@ -2,6 +2,7 @@ import {
   commands,
   events,
   type IpcError,
+  type CheckInResponse,
   type PresetId,
   type SessionKind,
   type TimerPhaseEvent,
@@ -12,7 +13,7 @@ import {
 
 export type TimerSnapshot = TimerSnapshot_Serialize;
 export type TimerSettings = TimerSettings_Serialize;
-export type { PresetId, SessionKind, TimerPhaseEvent, TodayFocus };
+export type { CheckInResponse, PresetId, SessionKind, TimerPhaseEvent, TodayFocus };
 
 type CommandResult<T> = { status: "ok"; data: T } | { status: "error"; error: IpcError };
 
@@ -32,6 +33,7 @@ export const timerApi = {
   extend: (minutes: number) => unwrap(commands.timerExtend(minutes)),
   end: () => unwrap(commands.timerEnd()),
   todayFocus: () => unwrap(commands.todayFocus()),
+  checkIn: (response: CheckInResponse) => unwrap(commands.checkIn(response)),
   settings: () => unwrap(commands.timerSettings()),
   setSettings: (settings: TimerSettings) => unwrap(commands.timerSetSettings(settings)),
   /** `started` is a `datetime-local` value; Rust turns it into a timestamp. */

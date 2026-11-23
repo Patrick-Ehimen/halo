@@ -1,6 +1,7 @@
 import { useDismiss } from "@halo/ui";
 import { useEffect, useRef, useState } from "react";
 import { hideSplash } from "../../splash";
+import { appApi } from "../app/api";
 import { Controls } from "./components/Controls";
 import { IntentionCard } from "./components/IntentionCard";
 import { ManualLogDialog } from "./components/ManualLogDialog";
@@ -10,11 +11,11 @@ import { SettingChips } from "./components/SettingChips";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { AmbienceCard, ShieldCard, TodayCard, UpNextCard } from "./components/SideCards";
 import { TimerRing } from "./components/TimerRing";
-import { describe, presetOf } from "./format";
+import { PRESETS, describe, presetOf } from "./format";
 import { useFocusStore } from "./store";
 
 export function FocusScreen() {
-  const { snapshot, today, settings, error, connect, clearError } = useFocusStore();
+  const { snapshot, today, settings, prefs, error, connect, clearError } = useFocusStore();
   const actions = useFocusStore();
   const [intention, setIntention] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -23,6 +24,40 @@ export function FocusScreen() {
   const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => connect(), [connect]);
+
+  // The menu bar and the palette can ask for a panel here.
+  useEffect(
+    () =>
+      appApi.onUiRequest((action) => {
+        if (action === "openSettings") setSettingsOpen(true);
+        else setLogOpen(true);
+      }),
+    [],
+  );
+
+  // In-app shortcuts: ⌘K palette, ⌘1/⌘2/⌘3 start a preset, ⌘, settings.
+  const idleOnFocus = snapshot?.status === "idle" && snapshot.phase === "focus";
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey || e.altKey || e.ctrlKey) return;
+      if (e.key === "k") {
+        e.preventDefault();
+        void appApi.togglePalette();
+      } else if (e.key === ",") {
+        e.preventDefault();
+        setSettingsOpen(true);
+      } else if (["1", "2", "3"].includes(e.key) && idleOnFocus) {
+        const preset = PRESETS[Number(e.key) - 1];
+        if (preset) {
+          e.preventDefault();
+          void actions.start(preset.id, intention);
+          setIntention("");
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [actions, intention, idleOnFocus]);
 
   // The launch splash stays up until there's a timer to show (or an error).
   const ready = snapshot !== null || error !== null;
@@ -96,6 +131,8 @@ export function FocusScreen() {
             <SettingsPanel
               settings={settings}
               onChange={(s) => void actions.saveSettings(s)}
+              prefs={prefs}
+              onPrefsChange={(p) => void actions.savePrefs(p)}
               onClose={() => setSettingsOpen(false)}
             />
           )}

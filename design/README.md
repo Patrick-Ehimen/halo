@@ -16,6 +16,8 @@ The canvas is the source of truth. This folder is a snapshot of it for the repo.
 | `canvas/Blocker.dc.html` | Shield: strict mode, block/allow lists, apps, schedules | Switches, mode |
 | `canvas/Overlays.dc.html` | Mini timer, check-in, reflection, break overlay, ⌘K palette | — |
 | `canvas/MenuBar.dc.html` | Menu bar popover (Focus / Trading), item states, right-click menu, settings | Tabs, timer, checklist, head check, settings |
+| `canvas/Goals.dc.html` | Goals: long-term goals with pace, milestones, projects, and what today's plan contributes | — |
+| `canvas/PlanGoals.dc.html` | Today plan linked to goals: goal progress strip, tasks grouped by goal, time blocks coloured by goal | — |
 
 The `.dc.html` files are the canvas's design-component source. They need the canvas runtime, so they won't render by opening them in a browser. Use them as a reference for layout, copy, spacing, and colors, or open the canvas link to see them live.
 

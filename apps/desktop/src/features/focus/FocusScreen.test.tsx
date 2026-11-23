@@ -58,6 +58,14 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
+vi.mock("../app/api", () => ({
+  appApi: {
+    getPrefs: vi.fn().mockResolvedValue(null),
+    setPrefs: vi.fn(),
+    togglePalette: vi.fn(),
+    onUiRequest: vi.fn(() => () => {}),
+  },
+}));
 
 describe("FocusScreen", () => {
   beforeEach(() => {

@@ -55,6 +55,8 @@ pub enum Transition {
     BreakEnded {
         skipped: bool,
     },
+    /// Time to ask "Still on it?" during a focus session.
+    CheckInDue,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,6 +112,8 @@ pub struct Snapshot {
     pub long_break_every: u32,
     /// Pauses left in this focus session; `None` when unlimited or on a break.
     pub pauses_left: Option<u32>,
+    /// Pauses taken in this focus session.
+    pub pauses: u32,
     /// When the current phase started; `None` while idle.
     pub started_at: Option<Millis>,
 }
@@ -135,6 +139,8 @@ pub struct Timer {
     started_at: Option<Millis>,
     pauses: u32,
     goal_announced: bool,
+    /// Check-in intervals already passed in this focus session.
+    check_ins_passed: u64,
 }
 
 impl Timer {
@@ -151,6 +157,7 @@ impl Timer {
             started_at: None,
             pauses: 0,
             goal_announced: false,
+            check_ins_passed: 0,
         }
     }
 
@@ -278,6 +285,32 @@ impl Timer {
         if self.status != Status::Running {
             return Vec::new();
         }
+        let mut out = self.check_in(now);
+        out.extend(self.advance(now));
+        out
+    }
+
+    /// `CheckInDue` once each time focus crosses another check-in interval,
+    /// unless the session ends on this tick.
+    fn check_in(&mut self, now: Millis) -> Vec<Transition> {
+        let Some(every) = self.config.check_in_every_ms.filter(|&e| e > 0) else {
+            return Vec::new();
+        };
+        if self.phase != Phase::Focus {
+            return Vec::new();
+        }
+        let elapsed = self.elapsed(now);
+        let ends_now =
+            !self.preset.is_flowtime() && !self.config.overflow && elapsed >= self.planned_ms;
+        let passed = elapsed / every;
+        if ends_now || passed <= self.check_ins_passed {
+            return Vec::new();
+        }
+        self.check_ins_passed = passed;
+        vec![Transition::CheckInDue]
+    }
+
+    fn advance(&mut self, now: Millis) -> Vec<Transition> {
         let elapsed = self.elapsed(now);
         if self.phase == Phase::Focus && self.preset.is_flowtime() {
             return Vec::new();
@@ -338,6 +371,7 @@ impl Timer {
             completed_in_cycle,
             long_break_every: every,
             pauses_left,
+            pauses: self.pauses,
             started_at: self.started_at,
         }
     }
@@ -358,6 +392,7 @@ impl Timer {
         self.started_at = Some(at);
         self.pauses = 0;
         self.goal_announced = false;
+        self.check_ins_passed = 0;
     }
 
     fn go_idle(&mut self, phase: Phase, planned_ms: u64) {
@@ -369,6 +404,7 @@ impl Timer {
         self.started_at = None;
         self.pauses = 0;
         self.goal_announced = false;
+        self.check_ins_passed = 0;
     }
 
     fn finish_focus(&mut self, ended_at: Millis, focused_ms: u64) -> Vec<Transition> {
@@ -430,8 +466,20 @@ mod tests {
 
     const T0: Millis = 1_700_000_000_000;
 
+    /// Check-ins are off here so other tests see only their own transitions;
+    /// the check-in tests below turn them on.
     fn timer(config: Config) -> Timer {
-        Timer::new(config)
+        Timer::new(Config {
+            check_in_every_ms: None,
+            ..config
+        })
+    }
+
+    fn with_check_ins(every_min: u64) -> Timer {
+        Timer::new(Config {
+            check_in_every_ms: Some(every_min * MINUTE),
+            ..Config::default()
+        })
     }
 
     fn no_auto() -> Config {
@@ -829,5 +877,74 @@ mod tests {
         t.start_focus(Preset::POMODORO, T0).unwrap();
         assert_eq!(t.snapshot(T0 - MINUTE).elapsed_ms, 0);
         assert!(t.tick(T0 - MINUTE).is_empty());
+    }
+
+    #[test]
+    fn check_in_is_due_each_interval_of_focus() {
+        let mut t = with_check_ins(15);
+        t.start_focus(Preset::DEEP, T0).unwrap();
+        assert!(t.tick(T0 + 14 * MINUTE).is_empty());
+        assert_eq!(t.tick(T0 + 15 * MINUTE), vec![Transition::CheckInDue]);
+        assert!(t.tick(T0 + 16 * MINUTE).is_empty());
+        assert_eq!(t.tick(T0 + 30 * MINUTE), vec![Transition::CheckInDue]);
+    }
+
+    #[test]
+    fn a_late_tick_gives_one_check_in_not_several() {
+        let mut t = with_check_ins(10);
+        t.start_focus(Preset::DEEP, T0).unwrap();
+        assert_eq!(t.tick(T0 + 35 * MINUTE), vec![Transition::CheckInDue]);
+        assert!(t.tick(T0 + 39 * MINUTE).is_empty());
+        assert_eq!(t.tick(T0 + 40 * MINUTE), vec![Transition::CheckInDue]);
+    }
+
+    #[test]
+    fn pauses_dont_count_toward_check_ins() {
+        let mut t = with_check_ins(15);
+        t.start_focus(Preset::DEEP, T0).unwrap();
+        t.pause(T0 + 10 * MINUTE).unwrap();
+        t.resume(T0 + 30 * MINUTE).unwrap();
+        assert!(t.tick(T0 + 34 * MINUTE).is_empty());
+        assert_eq!(t.tick(T0 + 35 * MINUTE), vec![Transition::CheckInDue]);
+    }
+
+    #[test]
+    fn no_check_ins_on_breaks_or_when_off() {
+        let mut t = with_check_ins(5);
+        t.start_focus(Preset::POMODORO, T0).unwrap();
+        t.end(T0 + 25 * MINUTE).unwrap(); // short break auto-starts
+        assert!(!t.tick(T0 + 29 * MINUTE).contains(&Transition::CheckInDue));
+
+        let mut off = timer(Config::default());
+        off.start_focus(Preset::DEEP, T0).unwrap();
+        assert!(off.tick(T0 + 45 * MINUTE).is_empty());
+    }
+
+    #[test]
+    fn no_check_in_on_the_tick_that_ends_the_session() {
+        let mut t = Timer::new(Config {
+            overflow: false,
+            check_in_every_ms: Some(25 * MINUTE),
+            ..Config::default()
+        });
+        t.start_focus(Preset::POMODORO, T0).unwrap();
+        let out = t.tick(T0 + 25 * MINUTE);
+        assert!(!out.contains(&Transition::CheckInDue));
+        assert!(matches!(out[0], Transition::FocusEnded(_)));
+    }
+
+    #[test]
+    fn check_ins_continue_in_overflow_and_reset_per_session() {
+        let mut t = with_check_ins(20);
+        t.start_focus(Preset::POMODORO, T0).unwrap();
+        assert_eq!(t.tick(T0 + 20 * MINUTE), vec![Transition::CheckInDue]);
+        assert_eq!(
+            t.tick(T0 + 40 * MINUTE),
+            vec![Transition::CheckInDue, Transition::GoalReached]
+        );
+        t.end(T0 + 41 * MINUTE).unwrap();
+        t.end(T0 + 41 * MINUTE).unwrap(); // skip the break
+        t.start_focus(Preset::POMODORO, T0 + 50 * MINUTE).unwrap();
+        assert_eq!(t.tick(T0 + 70 * MINUTE), vec![Transition::CheckInDue]);
     }
 }

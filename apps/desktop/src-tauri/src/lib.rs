@@ -2,11 +2,19 @@
 
 mod commands;
 mod error;
+mod mini;
+mod notify;
+mod overlay;
 mod platform;
+mod prefs;
 mod shield;
+mod shortcuts;
 mod state;
 mod timer;
 mod tracking;
+mod tray;
+mod ui;
+mod windows;
 
 use tauri::Manager;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
@@ -25,6 +33,19 @@ fn specta_builder() -> Builder<tauri::Wry> {
         .error_handling(ErrorHandlingMode::Result)
         .commands(collect_commands![
             commands::app::app_info,
+            commands::app::open_main_window,
+            commands::app::quit_app,
+            commands::app::hide_popover,
+            commands::app::set_mini_visible,
+            commands::app::mini_visible,
+            commands::app::get_prefs,
+            commands::app::set_prefs,
+            commands::app::toggle_palette,
+            commands::app::hide_palette,
+            commands::app::request_ui,
+            commands::app::dismiss_check_in,
+            commands::app::close_break_overlay,
+            commands::timer::check_in,
             commands::timer::timer_state,
             commands::timer::timer_start,
             commands::timer::timer_select_preset,
@@ -38,7 +59,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             commands::timer::timer_set_settings,
             commands::timer::log_session,
         ])
-        .events(collect_events![timer::TimerTick, timer::TimerPhaseEvent])
+        .events(collect_events![
+            timer::TimerTick,
+            timer::TimerPhaseEvent,
+            ui::UiRequest
+        ])
 }
 
 fn export_bindings(builder: &Builder<tauri::Wry>) -> Result<(), String> {
@@ -75,12 +100,43 @@ pub fn run() {
             let conn = halo_store::open(&data_dir.join("halo.db"))?;
             let state = AppState::new(conn);
             timer::load_settings(&state)?;
+            timer::close_abandoned(&state)?;
+            let saved_prefs = prefs::load(&state);
+            let initial = timer::engine_snapshot(&state)?;
             app.manage(state);
+            app.manage(std::sync::Mutex::new(saved_prefs));
+            app.manage(std::sync::Mutex::new(tray::TrayCache::default()));
+
+            let handle = app.handle();
+            windows::create_popover(handle)?;
+            windows::create_palette(handle)?;
+            windows::create_check_in(handle)?;
+            mini::create(handle)?;
+            tray::create(handle, &initial)?;
+            shortcuts::register(handle);
             timer::spawn_driver(app.handle().clone());
 
             Ok(())
         })
         .on_window_event(|window, event| {
+            if window.label() == mini::MINI
+                && let tauri::WindowEvent::Moved(position) = event
+            {
+                mini::moved(window.app_handle(), *position);
+            }
+            if window.label() == windows::PALETTE
+                && let tauri::WindowEvent::Focused(false) = event
+                && let Err(e) = windows::hide_palette(window.app_handle())
+            {
+                eprintln!("hide palette: {e}");
+            }
+            // The popover closes when it loses focus, like a native menu.
+            if window.label() == windows::POPOVER
+                && let tauri::WindowEvent::Focused(false) = event
+                && let Err(e) = windows::hide_popover(window.app_handle())
+            {
+                eprintln!("hide popover: {e}");
+            }
             // On macOS, closing the main window hides it; the timer keeps
             // running and the Dock icon brings it back. ⌘Q quits.
             #[cfg(target_os = "macos")]
@@ -106,15 +162,18 @@ pub fn run() {
     };
 
     app.run(|_handle, _event| {
+        if let tauri::RunEvent::ExitRequested { .. } = _event
+            && let Err(e) = mini::save(_handle)
+        {
+            eprintln!("save mini timer: {e}");
+        }
         #[cfg(target_os = "macos")]
         if let tauri::RunEvent::Reopen {
             has_visible_windows: false,
             ..
         } = _event
-            && let Some(window) = _handle.get_webview_window("main")
-            && let Err(e) = window.show().and_then(|()| window.set_focus())
         {
-            eprintln!("show main window: {e}");
+            windows::show_main(_handle);
         }
     });
 }
