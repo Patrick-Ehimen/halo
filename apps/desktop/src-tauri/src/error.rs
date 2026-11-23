@@ -14,6 +14,9 @@ pub enum Error {
     Timer(halo_timer::Error),
     #[error("settings: {0}")]
     Json(#[from] serde_json::Error),
+    /// Input the user can fix. The message is user-facing.
+    #[error("{0}")]
+    Invalid(&'static str),
     #[error("state lock poisoned")]
     Poisoned,
 }
@@ -28,6 +31,8 @@ pub enum IpcError {
     Io(String),
     /// The timer refused an action (e.g. no pauses left). The message is user-facing.
     Timer(String),
+    /// Input the user can fix. The message is user-facing.
+    Invalid(String),
     Internal(String),
 }
 
@@ -38,6 +43,7 @@ impl From<Error> for IpcError {
             Error::Db(_) => Self::Db(message),
             Error::Io(_) => Self::Io(message),
             Error::Timer(_) => Self::Timer(message),
+            Error::Invalid(_) => Self::Invalid(message),
             Error::Tauri(_) | Error::Json(_) | Error::Poisoned => Self::Internal(message),
         }
     }

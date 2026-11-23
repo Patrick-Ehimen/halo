@@ -5,6 +5,7 @@ mod error;
 mod mini;
 mod notify;
 mod overlay;
+mod plan;
 mod platform;
 mod prefs;
 mod shield;
@@ -46,6 +47,29 @@ fn specta_builder() -> Builder<tauri::Wry> {
             commands::app::dismiss_check_in,
             commands::app::close_break_overlay,
             commands::timer::check_in,
+            commands::timer::timer_start_task,
+            commands::timer::timer_set_note,
+            commands::plan::plan_view,
+            commands::plan::quick_add_preview,
+            commands::plan::quick_add,
+            commands::plan::goal_create,
+            commands::plan::goal_update,
+            commands::plan::goal_set_done,
+            commands::plan::goal_delete,
+            commands::plan::milestone_create,
+            commands::plan::milestone_set_done,
+            commands::plan::milestone_delete,
+            commands::plan::project_create,
+            commands::plan::project_update,
+            commands::plan::project_archive,
+            commands::plan::task_create,
+            commands::plan::task_update,
+            commands::plan::task_complete,
+            commands::plan::task_reopen,
+            commands::plan::task_delete,
+            commands::plan::block_create,
+            commands::plan::block_move,
+            commands::plan::block_delete,
             commands::timer::timer_state,
             commands::timer::timer_start,
             commands::timer::timer_select_preset,
@@ -62,7 +86,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
         .events(collect_events![
             timer::TimerTick,
             timer::TimerPhaseEvent,
-            ui::UiRequest
+            ui::UiRequest,
+            plan::PlanChanged
         ])
 }
 

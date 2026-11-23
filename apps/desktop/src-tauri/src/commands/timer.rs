@@ -103,6 +103,24 @@ fn parse_local(value: &str) -> Option<u64> {
     u64::try_from(local.timestamp_millis()).ok()
 }
 
+/// Starts a focus session on a task.
+#[tauri::command]
+#[specta::specta]
+pub fn timer_start_task(
+    app: AppHandle,
+    task_id: String,
+    preset: PresetId,
+) -> Result<TimerSnapshot, IpcError> {
+    Ok(timer::start_task(&app, &task_id, preset)?)
+}
+
+/// Saves a note on the running focus session.
+#[tauri::command]
+#[specta::specta]
+pub fn timer_set_note(app: AppHandle, note: String) -> Result<TimerSnapshot, IpcError> {
+    Ok(timer::set_note(&app, &note)?)
+}
+
 /// Answers "Still on it?". "I drifted" also counts a distraction.
 #[tauri::command]
 #[specta::specta]

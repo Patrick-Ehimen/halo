@@ -35,6 +35,11 @@ pub struct LiveTimer {
     saved_minutes: u64,
     /// When the open check-in was asked.
     check_in_at: Option<Millis>,
+    /// The task the session was started from, and its project.
+    task_id: Option<String>,
+    project_id: Option<String>,
+    /// A note on the running session.
+    note: String,
 }
 
 impl LiveTimer {
@@ -45,6 +50,9 @@ impl LiveTimer {
             session_id: None,
             saved_minutes: 0,
             check_in_at: None,
+            task_id: None,
+            project_id: None,
+            note: String::new(),
         }
     }
 }
@@ -67,11 +75,7 @@ where
         let mut live = state.timer()?;
         let transitions = action(&mut live, now)?;
         persist(&state, &mut live, &transitions, now)?;
-        (
-            transitions,
-            TimerSnapshot::new(&live.engine, &live.intention, now),
-            live.engine.snapshot(now),
-        )
+        (transitions, snap(&live, now), live.engine.snapshot(now))
     };
     announce(app, &transitions, &snapshot, &engine)?;
     Ok(snapshot)
@@ -153,15 +157,60 @@ pub fn engine_snapshot(state: &AppState) -> Result<halo_timer::Snapshot> {
 pub fn snapshot(app: &AppHandle) -> Result<TimerSnapshot> {
     let state = app.state::<AppState>();
     let live = state.timer()?;
-    Ok(TimerSnapshot::new(&live.engine, &live.intention, now_ms()))
+    Ok(snap(&live, now_ms()))
 }
 
 pub fn start(app: &AppHandle, preset: PresetId, intention: String) -> Result<TimerSnapshot> {
     act(app, |live, now| {
         let transitions = live.engine.start_focus(preset.preset(), now)?;
         live.intention = intention.trim().to_string();
+        live.task_id = None;
+        live.project_id = None;
+        live.note.clear();
         Ok(transitions)
     })
+}
+
+/// Starts a focus session on a task: its title is the intention, and the
+/// session counts toward the task (and its project's goal).
+pub fn start_task(app: &AppHandle, task_id: &str, preset: PresetId) -> Result<TimerSnapshot> {
+    let task = {
+        let state = app.state::<AppState>();
+        let conn = state.db()?;
+        halo_store::tasks::get(&conn, task_id)?
+            .ok_or(Error::Invalid("That task no longer exists"))?
+    };
+    act(app, |live, now| {
+        let transitions = live.engine.start_focus(preset.preset(), now)?;
+        live.intention = task.title.clone();
+        live.task_id = Some(task.id.clone());
+        live.project_id = task.project_id.clone();
+        live.note.clear();
+        Ok(transitions)
+    })
+}
+
+/// Saves a note on the running focus session.
+pub fn set_note(app: &AppHandle, note: &str) -> Result<TimerSnapshot> {
+    let note = note.trim().chars().take(2000).collect::<String>();
+    let state = app.state::<AppState>();
+    act(app, |live, now| {
+        if let Some(id) = live.session_id.clone() {
+            let conn = state.db()?;
+            halo_store::sessions::set_notes(&conn, &id, &note, ms_i64(now))?;
+        }
+        live.note = note.clone();
+        Ok(Vec::new())
+    })
+}
+
+fn snap(live: &LiveTimer, now: Millis) -> TimerSnapshot {
+    let mut s = TimerSnapshot::new(&live.engine, &live.intention, now);
+    if s.phase == dto::TimerPhase::Focus && s.status != dto::TimerStatus::Idle {
+        s.task_id = live.task_id.clone();
+        s.note = live.note.clone();
+    }
+    s
 }
 
 pub fn select_preset(app: &AppHandle, preset: PresetId) -> Result<TimerSnapshot> {
@@ -225,11 +274,7 @@ fn drive_once(app: &AppHandle, last_shown: &mut Option<(u32, String)>) -> Result
         let transitions = live.engine.tick(now);
         persist(&state, &mut live, &transitions, now)?;
         save_progress(&state, &mut live, now)?;
-        (
-            transitions,
-            TimerSnapshot::new(&live.engine, &live.intention, now),
-            live.engine.snapshot(now),
-        )
+        (transitions, snap(&live, now), live.engine.snapshot(now))
     };
     // Emit when the shown second or the state changes.
     let shown = (snapshot.elapsed_ms / 1000, snapshot.key());
@@ -257,6 +302,8 @@ fn persist(
                     planned_secs: secs(s.planned_ms),
                     started_at: ms_i64(s.started_at.unwrap_or(now)),
                     intention: &live.intention,
+                    task_id: live.task_id.as_deref(),
+                    project_id: live.project_id.as_deref(),
                 };
                 let conn = state.db()?;
                 live.session_id = Some(halo_store::sessions::start(&conn, &row, ms_i64(now))?);
@@ -403,7 +450,11 @@ fn surfaces(app: &AppHandle, transitions: &[Transition]) -> Result<()> {
                 crate::overlay::close(app)?;
             }
             Transition::CheckInDue => crate::windows::show_check_in(app)?,
-            Transition::FocusEnded(_) => crate::windows::hide_check_in(app)?,
+            Transition::FocusEnded(_) => {
+                crate::windows::hide_check_in(app)?;
+                // Task and goal counts include the session now.
+                crate::plan::changed(app);
+            }
             Transition::GoalReached => {}
         }
     }

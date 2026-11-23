@@ -128,6 +128,10 @@ pub struct TimerSnapshot {
     pub overflow_enabled: bool,
     pub auto_start_breaks: bool,
     pub intention: String,
+    /// The task the running focus session was started from.
+    pub task_id: Option<String>,
+    /// A note on the running focus session.
+    pub note: String,
 }
 
 impl TimerSnapshot {
@@ -169,6 +173,8 @@ impl TimerSnapshot {
             } else {
                 String::new()
             },
+            task_id: None,
+            note: String::new(),
         }
     }
 
