@@ -3,7 +3,7 @@
 Halo is a macOS-first focus app: a Session-style Pomodoro timer, daily planner, distraction blocker, and a trading-discipline desk. It's a desktop app built with **Tauri v2** (Rust core) and a **TypeScript** UI. The goal is one thing: more deep work, less drift.
 
 - Owner: 0xOse (Seraph Labz)
-- Status: phases 1–3 done (timer, menu bar and windows, goals and today plan); phase 4 (stats) next
+- Status: phases 1–4 done (timer, menu bar and windows, goals and today plan, stats and motivation); phase 5 (trading desk) next
 - Design canvas (source of truth for UI): https://claude.ai/artifact/6KUBniDhU2wna5WumwFeqf
 
 ## Product scope (v1)
@@ -105,7 +105,7 @@ Layout:
 apps/
   desktop/                 # @halo/desktop: the Tauri app
     src/
-      windows/             # main, tray-popover, mini, overlay, palette
+      windows/             # main, tray-popover, mini, overlay, palette, check-in, reflection
       features/            # focus, plan, stats, shield, trading (IPC calls in features/*/api.ts)
     src-tauri/
       src/
@@ -123,6 +123,7 @@ crates/                    # pure Rust, no Tauri; fully unit-tested
   timer/                   # halo-timer: engine, presets, Flowtime, overflow, check-ins, manual log (std only)
   menubar/                 # halo-menubar: menu bar title text and template ring icon (pure)
   plan/                    # halo-plan: quick-add parser, repeats, goal progress and pace, local-day math
+  stats/                   # halo-stats: day/hour split, heatmap levels, focus score, streaks, achievements, tree stage, CSV
   trading/                 # (to add) halo-trading: session clocks, checklist, head check, chart time
 supabase/                  # cloud schema (Postgres + RLS) mirroring the synced local tables
 design/                    # canvas snapshot, logo, tokens (the live canvas is the source of truth)
