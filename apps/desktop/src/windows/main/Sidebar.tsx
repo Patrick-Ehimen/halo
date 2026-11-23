@@ -4,7 +4,7 @@ import type { TodayFocus } from "../../features/focus/api";
 import type { GoalView, ProjectView } from "../../features/plan/api";
 import { Dot, GoalRing } from "../../features/plan/components/ui";
 
-export type Screen = "focus" | "plan" | "goals" | "stats";
+export type Screen = "focus" | "plan" | "goals" | "stats" | "trading";
 
 type Item = { label: string; screen?: Screen; icon: (color: string) => ReactNode };
 
@@ -70,6 +70,7 @@ const ITEMS: Item[] = [
   },
   {
     label: "Trading desk",
+    screen: "trading",
     icon: (c) => (
       <svg {...stroke(c)}>
         <path d="M7 4v16M17 4v16M5 8h4v6H5zM15 10h4v5h-4z" />

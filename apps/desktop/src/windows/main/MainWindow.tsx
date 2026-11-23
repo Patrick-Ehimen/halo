@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { getAppInfo } from "../../features/app/api";
+import { appApi, getAppInfo } from "../../features/app/api";
 import { FocusScreen } from "../../features/focus/FocusScreen";
 import { useFocusStore } from "../../features/focus/store";
 import { GoalsScreen } from "../../features/plan/GoalsScreen";
 import { PlanScreen } from "../../features/plan/PlanScreen";
 import { usePlanStore } from "../../features/plan/store";
 import { StatsScreen } from "../../features/stats/StatsScreen";
+import { TradingScreen } from "../../features/trading/TradingScreen";
 import { Sidebar, type Screen } from "./Sidebar";
 
 export function MainWindow() {
@@ -25,6 +26,15 @@ export function MainWindow() {
   useEffect(() => connectPlan(), [connectPlan]);
   // The sidebar's streak follows today's focus on every screen.
   useEffect(() => connectFocus(), [connectFocus]);
+  // Settings and the manual log live on the Focus screen; the desk has its own.
+  useEffect(
+    () =>
+      appApi.onUiRequest((action) => {
+        if (action === "openTrading") setScreen("trading");
+        else if (screen !== "focus") setScreen("focus");
+      }),
+    [screen],
+  );
 
   const navigate = (to: Screen, goal?: string) => {
     setScreen(to);
@@ -32,7 +42,7 @@ export function MainWindow() {
   };
 
   return (
-    <div className="flex h-full bg-[radial-gradient(1100px_700px_at_10%_6%,rgba(242,181,68,0.14),transparent_60%),radial-gradient(1000px_700px_at_94%_96%,rgba(108,182,255,0.10),transparent_60%)]">
+    <div className="flex h-full overflow-clip bg-[radial-gradient(1100px_700px_at_10%_6%,rgba(242,181,68,0.14),transparent_60%),radial-gradient(1000px_700px_at_94%_96%,rgba(108,182,255,0.10),transparent_60%)]">
       <Sidebar
         version={version}
         screen={screen}
@@ -41,7 +51,7 @@ export function MainWindow() {
         projects={plan?.projects ?? []}
         today={today}
       />
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col overflow-clip">
         {screen === "focus" && <FocusScreen onOpenPlan={() => navigate("plan")} />}
         {screen === "plan" && <PlanScreen onOpenGoals={(id) => navigate("goals", id)} />}
         {screen === "goals" && (
@@ -52,6 +62,7 @@ export function MainWindow() {
           />
         )}
         {screen === "stats" && <StatsScreen />}
+        {screen === "trading" && <TradingScreen onFocusBlock={() => navigate("focus")} />}
       </main>
     </div>
   );

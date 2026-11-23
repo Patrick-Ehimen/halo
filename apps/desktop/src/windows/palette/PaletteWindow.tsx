@@ -71,6 +71,8 @@ export function PaletteWindow() {
         return appApi.requestUi("openSettings");
       case "logSession":
         return appApi.requestUi("logSession");
+      case "openTrading":
+        return appApi.requestUi("openTrading");
       case "startTask":
         return planApi.startTask(action.taskId, snapshot ? presetOf(snapshot) : "pomodoro");
       case "addTask":

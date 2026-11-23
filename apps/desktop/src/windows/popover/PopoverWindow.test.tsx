@@ -84,6 +84,18 @@ vi.mock("../../features/focus/api", () => ({
 }));
 vi.mock("../../features/app/api", () => ({ appApi: mocks.appApi }));
 
+const trading = vi.hoisted(() => ({
+  tradingApi: {
+    view: vi.fn(),
+    settings: vi.fn(),
+    setChecked: vi.fn(),
+    headCheck: vi.fn(),
+    clearHeadCheck: vi.fn(),
+  },
+  onTradingChanged: () => () => {},
+}));
+vi.mock("../../features/trading/api", () => trading);
+
 describe("PopoverWindow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -149,5 +161,26 @@ describe("PopoverWindow", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Mini timer" }));
     expect(mocks.appApi.setMiniVisible).toHaveBeenCalledWith(true);
     expect(await screen.findByRole("button", { name: "Hide mini" })).toBeInTheDocument();
+  });
+
+  it("shows the trading desk in its tab", async () => {
+    const { tradingMorning, tradingSettings } = await import("../../test/tradingFixture");
+    trading.tradingApi.view.mockResolvedValue(tradingMorning);
+    trading.tradingApi.settings.mockResolvedValue(tradingSettings);
+    trading.tradingApi.setChecked.mockResolvedValue(null);
+    trading.tradingApi.headCheck.mockResolvedValue(null);
+    mocks.timerApi.state.mockResolvedValue(idle);
+    render(<PopoverWindow />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Trading" }));
+    expect(screen.getByRole("tab", { name: "Trading" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("4h 02m 00s")).toBeInTheDocument();
+    expect(screen.getByText("Next: Key levels marked")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Next: Key levels marked/ }));
+    expect(trading.tradingApi.setChecked).toHaveBeenCalledWith("b", true);
+    fireEvent.click(screen.getByRole("button", { name: "4" }));
+    expect(trading.tradingApi.headCheck).toHaveBeenCalledWith(4, []);
+    fireEvent.click(screen.getByRole("button", { name: "Trading desk" }));
+    expect(mocks.appApi.requestUi).toHaveBeenCalledWith("openTrading");
   });
 });
