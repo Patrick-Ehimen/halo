@@ -14,6 +14,7 @@ mod state;
 mod stats;
 mod timer;
 mod tracking;
+mod trading;
 mod tray;
 mod ui;
 mod windows;
@@ -87,12 +88,24 @@ fn specta_builder() -> Builder<tauri::Wry> {
             commands::timer::timer_settings,
             commands::timer::timer_set_settings,
             commands::timer::log_session,
+            commands::trading::trading_view,
+            commands::trading::trading_settings,
+            commands::trading::trading_set_settings,
+            commands::trading::checklist_set,
+            commands::trading::checklist_add,
+            commands::trading::checklist_remove,
+            commands::trading::checklist_reset,
+            commands::trading::checklist_restore_suggested,
+            commands::trading::head_check,
+            commands::trading::head_check_clear,
+            commands::trading::open_automation_settings,
         ])
         .events(collect_events![
             timer::TimerTick,
             timer::TimerPhaseEvent,
             ui::UiRequest,
-            plan::PlanChanged
+            plan::PlanChanged,
+            trading::TradingChanged
         ])
 }
 
@@ -133,7 +146,9 @@ pub fn run() {
             timer::close_abandoned(&state)?;
             let saved_prefs = prefs::load(&state);
             let initial = timer::engine_snapshot(&state)?;
+            let desk = trading::Desk::load(&state);
             app.manage(state);
+            app.manage(desk);
             app.manage(std::sync::Mutex::new(saved_prefs));
             app.manage(std::sync::Mutex::new(tray::TrayCache::default()));
 
@@ -146,6 +161,7 @@ pub fn run() {
             tray::create(handle, &initial)?;
             shortcuts::register(handle);
             timer::spawn_driver(app.handle().clone());
+            trading::tracker::spawn(app.handle().clone());
 
             Ok(())
         })
