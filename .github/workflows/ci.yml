@@ -15,7 +15,7 @@ jobs:
     name: TypeScript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Version comes from root package.json's "packageManager" field;
       # don't also pin one here, pnpm/action-setup errors out if both are set.
@@ -49,7 +49,7 @@ jobs:
     # Halo is macOS-first; build and test where it ships.
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
